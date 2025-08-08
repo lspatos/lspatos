@@ -71,6 +71,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      height: 60px;
     }
 
     .btn-vermelho {
@@ -80,6 +81,17 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      height: 60px;
+    }
+
+    .btn-endereco {
+      background-color: #ff9100;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      height: 60px;
     }
 
     input[type="submit"]:hover {
@@ -99,19 +111,22 @@
     </div>
   </section>
 
+                  <!-- INÍCIO BLOCO DE ENDEREÇO -->
   <section>
     <div class="container_end">
       <h4>1. R. Antônia Carrilho, 115 - Res. Barreiro</h4>
       <div class="entradas">
         <form onsubmit="handleSubmit(event, 'Encontrado', 'Mapa 01', 'R. Antônia Carrilho, 115 - Res. Barreiro')">
-          <input type="submit" value="Encontrado" class="btn-verde" />
+          <input type="submit" value="✔ Encontrado" class="btn-verde" />
         </form>
         <form onsubmit="handleSubmit(event, 'Não encontrado', 'Mapa 01', 'R. Antônia Carrilho, 115 - Res. Barreiro')">
-          <input type="submit" value="Não encontrado" class="btn-vermelho" />
+          <input type="submit" value="✖ Não encontrado" class="btn-vermelho" />
         </form>
+        <button class="btn-endereco"> 🗺 Maps </button>
       </div>
     </div>
   </section>
+                  <!-- FIM BLOCO DE ENDEREÇO -->
 
   <script>
     async function handleSubmit(event, status, setor, endereco) {
