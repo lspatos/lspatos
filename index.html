@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles/style.css">
+    <link rel="icon" href="/imgs/fav_icon.ico" type="image/x-icon">
+    <meta name="theme-color" content="#5c3d89">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>LS PATOS</title>
+    <!-- CSS incorporado -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Nata+Sans:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');   
+
+        *{
+            margin: 0px;
+            font-family: "Montserrat", sans-serif;
+            font-optical-sizing: auto;
+        }
+
+        html, body {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        a{
+            text-decoration: none;
+            color: inherit;
+            flex: 0 0 120px;
+        }
+
+        .cabecalho{
+            display: flex;
+            height: 15vh;
+            align-items: center;
+            justify-content: center;
+            background-color: #5c3d89;
+            color: #fff;
+        }
+
+        .div_titulo_texto{
+            border-bottom: solid #ffffff;
+        }
+
+        .container_cards{
+            width: 100%;
+            height: 50vh;
+            background-color: #5c3d89;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-direction: row;
+        }
+
+        .container_cards_menu{
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            overflow-x: auto;
+            max-width: 100vw;
+            padding: 0 10px;
+        }
+
+        .container_cards_menu::-webkit-scrollbar {
+            display: none;
+        }
+
+        .card{
+            flex: 0 0 120px;
+            height: 150px;
+            margin: 5px;
+            border-radius: 8px;
+            background-color: rgb(255, 255, 255);
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            flex-direction: column;
+        }
+
+        .logo_mapa{
+            width: 50%;
+            padding: 2px;
+        }
+
+        span{
+            width: 90%;
+            background-color: #5f5f5f;
+            height: 10px;
+            border-radius: 8px;
+            margin: 2px;
+        }
+
+        .container_rodape{
+            margin-top: 20px;
+            height: 25vh;
+            display: flex;
+        }
+
+        .imagem_rodape{
+            width: 50%;
+            border-right: solid 1px #5f5f5f;
+            display: flex;
+            justify-content: center;
+        }
+
+        .imagem_rodape img {
+            width: 50%;
+        }
+
+        .info_rodape{
+            margin-left: 5px;
+            width: 50%;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .info_rodape h2 {
+            font-size: 14px;
+            padding: 7px;
+        }
+
+        .info_rodape p {
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <section class="cabecalho">
+        <div class="div_titulo">
+            <h1 class="div_titulo_texto">LS MAPAS</h1>
+        </div>
+    </section>
+
+    <section class="container_cards">
+        <div class="container_cards_menu">
+            <a href="/maps/mapa01.html">
+            <div class="card">
+                <h4>Mapa 01</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            </a>
+            
+            <div class="card">
+                <h4>Mapa 02</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 03</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 04</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 05</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 06</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 07</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 08</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 09</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 10</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 11</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 12</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <div class="card">
+                <h4>Mapa 13</h4>
+                <img class="logo_mapa" src="/imgs/map_card_logo.svg" alt="">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </section>
+
+    <section class="container_rodape">
+        <div class="imagem_rodape">
+            <img src="/imgs/img_rodape.svg" alt="">
+        </div> 
+        <div class="info_rodape">
+            <h2>Informações importantes:</h2>
+            <p>↦ &nbsp; &nbsp; Não se esqueça de atualizar o servo de mapas.</p>
+            <p>↦ &nbsp; &nbsp; Atente-se às observações de endereços.</p>
+            <p>↦ &nbsp; &nbsp; Certifique-se de trabalhar no mapa designado.</p>
+        </div>
+    </section>
+
+
+    <script src="/script.js"></script>
+</body>
+</html>
