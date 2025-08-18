@@ -139,7 +139,7 @@ function gerarEnderecos(nomeMapa) {
   });
 }
 
-// ENVIO PARA GOOGLE SHEETS
+// ENVIO PARA GOOGLE SHEETS (JSON)
 async function handleSubmit(status, setor, endereco) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
@@ -152,7 +152,10 @@ async function handleSubmit(status, setor, endereco) {
       body: JSON.stringify(payload)
     });
 
-    if (response.ok) {
+    const result = await response.json();
+    console.log("Resposta do servidor:", result);
+
+    if (result.result === "Success") {
       showToast("✅ Resposta registrada com sucesso!");
     } else {
       showToast("⚠ Erro no envio.");
