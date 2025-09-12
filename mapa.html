@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa</title>
+  <meta name="theme-color" content="#5c3d89" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="fav_icon.ico" type="image/x-icon">
+
+  <!-- CSS interno (mantido no estilo atual) -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+    * { margin: 0; font-family: "Montserrat", sans-serif; }
+    html, body { height: 100vh; }
+    .cabecalho { display: flex; justify-content: space-around; align-items: center; height: 15vh; background-color: #5c3d89; color: #fff; }
+    .div_titulo_texto { border-bottom: solid #ffffff; }
+    .button_back { background-color: #fff; color: #5c3d89; width: 50px; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .icon_back { width: 20px; }
+    .aviso { width: 70%; padding: 20px; }
+    .container_end { width: 90%; background-color: #e8e6e6; border-radius: 10px; margin: 15px auto; padding: 10px; }
+    .entradas { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-verde { background-color: #4caf50; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
+    .btn-vermelho { background-color: #f44336; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
+    .btn-endereco { background-color: #ff9100; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
+    input[type="submit"]:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <section class="cabecalho">
+    <a href="index.html">
+      <div class="button_back"><img class="icon_back" src="home.png" alt="Voltar" /></div>
+    </a>
+    <div class="div_titulo"><h1 id="tituloMapa" class="div_titulo_texto"></h1></div>
+  </section>
+
+  <section class="aviso">
+    <h3>*Atenção:</h3><br>
+    <p>Após clicar, aguarde até que a mensagem "Resposta registrada com sucesso!" seja exibida. Agradecemos.</p>
+  </section>
+
+  <!-- Container dinâmico -->
+  <section id="enderecos"></section>
+
+  <script src="script.js"></script>
+  <script>
+    // Pega número do mapa pela URL
+    const params = new URLSearchParams(window.location.search);
+    const numeroMapa = params.get("mapa");
+    const nomeMapa = "Mapa " + numeroMapa;
+
+    document.getElementById("tituloMapa").innerText = nomeMapa;
+    gerarEnderecos(nomeMapa);
+  </script>
+</body>
+</html>
