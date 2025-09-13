@@ -153,10 +153,10 @@ async function handleSubmit(status, setor, endereco) {
 
     let result;
     try {
-      // tenta converter para JSON
-      result = await response.json();
+      // tenta JSON a partir de um clone da resposta
+      result = await response.clone().json();
     } catch {
-      // se não for JSON, lê como texto
+      // se falhar, usa o texto da resposta original
       const text = await response.text();
       result = { result: text };
     }
@@ -173,7 +173,6 @@ async function handleSubmit(status, setor, endereco) {
     showToast("❌ Falha na conexão.");
   }
 }
-
 // TOAST DE FEEDBACK
 function showToast(msg) {
   let toast = document.createElement("div");
