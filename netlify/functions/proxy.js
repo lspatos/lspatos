@@ -1,44 +1,52 @@
-export async function handler(event, context) {
-  const targetUrl = "https://script.google.com/macros/s/AKfycbwd0P5RCJrbolrpE4s5vIME9_IVED_35sRU827sRVMFCye8COSiQu4h3gOOWyTDwhCLJw/exec"; // 👉 SUA URL DO GOOGLE APPS SCRIPT
+// netlify/functions/proxy.js
+const fetch = require("node-fetch");
 
-  // Trata o preflight OPTIONS (necessário para CORS funcionar corretamente)
-  if (event.httpMethod === "OPTIONS") {
+exports.handler = async (event) => {
+  if (event.httpMethod !== "POST") {
     return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
-      },
-      body: ""
+      statusCode: 405,
+      body: JSON.stringify({ error: "Method not allowed" }),
     };
   }
 
   try {
-    const response = await fetch(targetUrl, {
-      method: event.httpMethod,
+    const response = await fetch("https://script.google.com/macros/s/SEU_SCRIPT_ID/exec", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: event.body
+      body: event.body, // passa o que recebeu direto pro Apps Script
     });
 
-    const data = await response.text();
+    const text = await response.text();
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",  // 🔥 libera para qualquer domínio
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
-      },
-      body: data
-    };
-  } catch (err) {
+    // Se o Apps Script retornar texto simples (ex: "OK")
+    // convertemos para JSON consistente
+    if (text.includes("OK") || text.includes("Success")) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ result: "Success" }),
+      };
+    }
+
+    // Se o Apps Script já retornar JSON
+    try {
+      const json = JSON.parse(text);
+      return {
+        statusCode: 200,
+        body: JSON.stringify(json),
+      };
+    } catch (e) {
+      // fallback caso não seja JSON
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ result: text }),
+      };
+    }
+
+  } catch (error) {
+    console.error("Proxy error:", error);
     return {
       statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*"
-      },
-      body: JSON.stringify({ error: "Erro no proxy", details: err.message })
+      body: JSON.stringify({ error: "Proxy failed", details: error.message }),
     };
   }
-}
+};
