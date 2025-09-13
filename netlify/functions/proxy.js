@@ -1,5 +1,4 @@
 // netlify/functions/proxy.js
-const fetch = require("node-fetch");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -13,13 +12,12 @@ exports.handler = async (event) => {
     const response = await fetch("https://script.google.com/macros/s/SEU_SCRIPT_ID/exec", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: event.body, // passa o que recebeu direto pro Apps Script
+      body: event.body,
     });
 
     const text = await response.text();
 
-    // Se o Apps Script retornar texto simples (ex: "OK")
-    // convertemos para JSON consistente
+    // Se o Apps Script retornar texto simples ("OK", "Success")
     if (text.includes("OK") || text.includes("Success")) {
       return {
         statusCode: 200,
@@ -27,7 +25,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // Se o Apps Script já retornar JSON
+    // Se for JSON válido, repassa direto
     try {
       const json = JSON.parse(text);
       return {
@@ -35,7 +33,7 @@ exports.handler = async (event) => {
         body: JSON.stringify(json),
       };
     } catch (e) {
-      // fallback caso não seja JSON
+      // fallback: retorna como texto mesmo
       return {
         statusCode: 200,
         body: JSON.stringify({ result: text }),
