@@ -151,10 +151,19 @@ async function handleSubmit(status, setor, endereco) {
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json();
+    let result;
+    try {
+      // tenta converter para JSON
+      result = await response.json();
+    } catch {
+      // se não for JSON, lê como texto
+      const text = await response.text();
+      result = { result: text };
+    }
+
     console.log("Resposta do servidor:", result);
 
-    if (result.result === "Success") {
+    if (result.result === "Success" || result.result === "OK") {
       showToast("✅ Resposta registrada com sucesso!");
     } else {
       showToast("⚠ Erro no envio.");
