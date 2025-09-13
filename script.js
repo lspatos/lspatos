@@ -24,7 +24,6 @@ const mapas = {
     "R. José Valadares de Oliveira, 41 - Planalto",
     "R. Sebastião Silva, 197 - Cidade Nova",
     "R. Mario Aleixo Caixeta, 20 - Jardim Céu Azul",
-    "R. Pedro Caixeta de Melo, 1375 - Jardim Céu Azul"
   ],
   "Mapa 04": [
     "R. Oristila Abdo, 330 - Alto Limoeiro",
@@ -61,7 +60,6 @@ const mapas = {
   "Mapa 08": [
     "R. Otávio Borges, 521 - Caiçaras",
     "Praça Santa Helena, 27 - Aurélio Caixeta",
-    "R. Ubá, 52 - Vila Garcia",
     "R. Rogerio Severino de Almeida, 116 - Abner Afonso",
     "R. Geraldo Rodrigues dos Santos, 70 - Nova Floresta",
     "R. Ver. Filadelphio José da Fonseca, 849 - Nova Floresta"
