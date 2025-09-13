@@ -144,49 +144,58 @@ async function handleSubmit(status, setor, endereco) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const payload = { dataHora, status, setor, endereco };
 
-  try {
-    const response = await fetch(proxyURL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+  // Feedback imediato
+  showToast("⏳ Enviando...");
+
+  // Envio assíncrono (não trava a UI)
+  fetch(proxyURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(res => res.text()) // pega texto cru (evita erro de JSON)
+    .then(text => {
+      try {
+        const result = JSON.parse(text);
+        if (result.result === "Success") {
+          showToast("✅ Resposta registrada com sucesso!");
+        } else {
+          showToast("⚠ Erro no envio.");
+        }
+      } catch (e) {
+        console.error("Resposta inesperada:", text);
+        showToast("⚠ Resposta inesperada do servidor.");
+      }
+    })
+    .catch(err => {
+      console.error("Erro ao enviar:", err);
+      showToast("❌ Falha na conexão.");
     });
-
-    let result;
-    try {
-      // tenta JSON a partir de um clone da resposta
-      result = await response.clone().json();
-    } catch {
-      // se falhar, usa o texto da resposta original
-      const text = await response.text();
-      result = { result: text };
-    }
-
-    console.log("Resposta do servidor:", result);
-
-    if (result.result === "Success" || result.result === "OK") {
-      showToast("✅ Resposta registrada com sucesso!");
-    } else {
-      showToast("⚠ Erro no envio.");
-    }
-  } catch (error) {
-    console.error("Erro ao enviar:", error);
-    showToast("❌ Falha na conexão.");
-  }
 }
-// TOAST DE FEEDBACK
-function showToast(msg) {
-  let toast = document.createElement("div");
-  toast.textContent = msg;
-  toast.style.position = "fixed";
-  toast.style.bottom = "20px";
-  toast.style.left = "50%";
-  toast.style.transform = "translateX(-50%)";
-  toast.style.background = "#333";
-  toast.style.color = "#fff";
-  toast.style.padding = "10px 20px";
-  toast.style.borderRadius = "8px";
-  toast.style.zIndex = "1000";
-  document.body.appendChild(toast);
 
-  setTimeout(() => toast.remove(), 3000);
+// TOAST DE FEEDBACK (único e reutilizável)
+function showToast(msg) {
+  let toast = document.getElementById("toast-msg");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toast-msg";
+    toast.style.position = "fixed";
+    toast.style.bottom = "20px";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.background = "#333";
+    toast.style.color = "#fff";
+    toast.style.padding = "10px 20px";
+    toast.style.borderRadius = "8px";
+    toast.style.zIndex = "1000";
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = msg;
+  toast.style.opacity = "1";
+
+  clearTimeout(toast.timeout);
+  toast.timeout = setTimeout(() => {
+    toast.style.opacity = "0";
+  }, 3000);
 }
