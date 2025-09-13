@@ -66,7 +66,7 @@ const mapas = {
     "R. Geraldo Rodrigues dos Santos, 70 - Nova Floresta",
     "R. Ver. Filadelphio José da Fonseca, 849 - Nova Floresta"
   ],
-  "Mapa 9": [
+  "Mapa 09": [
     "R. Toinzinho Amâncio, 154 - Centro",
     "R. Trinta e Um de Março, 164 - São Francisco",
     "R. Rui Corrêa, 45 - São Francisco",
@@ -144,58 +144,59 @@ async function handleSubmit(status, setor, endereco) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const payload = { dataHora, status, setor, endereco };
 
-  // Feedback imediato
+  // Feedback imediato ao usuário
   showToast("⏳ Enviando...");
 
-  // Envio assíncrono (não trava a UI)
-  fetch(proxyURL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  })
-    .then(res => res.text()) // pega texto cru (evita erro de JSON)
-    .then(text => {
-      try {
-        const result = JSON.parse(text);
-        if (result.result === "Success") {
-          showToast("✅ Resposta registrada com sucesso!");
-        } else {
-          showToast("⚠ Erro no envio.");
-        }
-      } catch (e) {
-        console.error("Resposta inesperada:", text);
-        showToast("⚠ Resposta inesperada do servidor.");
-      }
-    })
-    .catch(err => {
-      console.error("Erro ao enviar:", err);
-      showToast("❌ Falha na conexão.");
+  try {
+    const response = await fetch(proxyURL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
+
+    let resultText = await response.text();
+    console.log("Resposta bruta:", resultText);
+
+    let ok = false;
+    try {
+      const parsed = JSON.parse(resultText);
+      ok = parsed.result?.toLowerCase() === "success";
+    } catch {
+      ok = /ok|success/i.test(resultText);
+    }
+
+    if (ok) {
+      showToast("✅ Resposta registrada com sucesso!");
+    } else {
+      showToast("⚠ Erro no envio.");
+    }
+  } catch (error) {
+    console.error("Erro ao enviar:", error);
+    showToast("❌ Falha na conexão.");
+  }
 }
 
-// TOAST DE FEEDBACK (único e reutilizável)
+// TOAST DE FEEDBACK (reutilizável)
+let globalToast;
 function showToast(msg) {
-  let toast = document.getElementById("toast-msg");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "toast-msg";
-    toast.style.position = "fixed";
-    toast.style.bottom = "20px";
-    toast.style.left = "50%";
-    toast.style.transform = "translateX(-50%)";
-    toast.style.background = "#333";
-    toast.style.color = "#fff";
-    toast.style.padding = "10px 20px";
-    toast.style.borderRadius = "8px";
-    toast.style.zIndex = "1000";
-    document.body.appendChild(toast);
+  if (!globalToast) {
+    globalToast = document.createElement("div");
+    globalToast.style.position = "fixed";
+    globalToast.style.bottom = "20px";
+    globalToast.style.left = "50%";
+    globalToast.style.transform = "translateX(-50%)";
+    globalToast.style.background = "#333";
+    globalToast.style.color = "#fff";
+    globalToast.style.padding = "10px 20px";
+    globalToast.style.borderRadius = "8px";
+    globalToast.style.zIndex = "1000";
+    document.body.appendChild(globalToast);
   }
+  globalToast.textContent = msg;
+  globalToast.style.display = "block";
 
-  toast.textContent = msg;
-  toast.style.opacity = "1";
-
-  clearTimeout(toast.timeout);
-  toast.timeout = setTimeout(() => {
-    toast.style.opacity = "0";
+  clearTimeout(globalToast.timeout);
+  globalToast.timeout = setTimeout(() => {
+    globalToast.style.display = "none";
   }, 3000);
 }
