@@ -1,3 +1,6 @@
+// URL DO PROXY NO NETLIFY (troque pelo seu domínio se mudar)
+const proxyURL = "https://friendly-selkie-afda9c.netlify.app/.netlify/functions/proxy";
+
 // ENDEREÇOS DE CADA MAPA
 const mapas = {
   "Mapa 01": [
@@ -107,9 +110,6 @@ const mapas = {
   ]
 };
 
-// URL DO SCRIPT GOOGLE
-const scriptURL = "https://script.google.com/macros/s/AKfycbwd0P5RCJrbolrpE4s5vIME9_IVED_35sRU827sRVMFCye8COSiQu4h3gOOWyTDwhCLJw/exec";
-
 // GERA OS ENDEREÇOS DINAMICAMENTE
 function gerarEnderecos(nomeMapa) {
   const container = document.getElementById("enderecos");
@@ -139,14 +139,13 @@ function gerarEnderecos(nomeMapa) {
   });
 }
 
-// ENVIO PARA GOOGLE SHEETS (JSON)
+// ENVIO PARA GOOGLE SHEETS (VIA PROXY)
 async function handleSubmit(status, setor, endereco) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-
   const payload = { dataHora, status, setor, endereco };
 
   try {
-    const response = await fetch(scriptURL, {
+    const response = await fetch(proxyURL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
