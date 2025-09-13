@@ -9,7 +9,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const response = await fetch("https://script.google.com/macros/s/SEU_SCRIPT_ID/exec", {
+    const response = await fetch("https://script.google.com/macros/s/AKfycbwd0P5RCJrbolrpE4s5vIME9_IVED_35sRU827sRVMFCye8COSiQu4h3gOOWyTDwhCLJw/exec", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: event.body,
