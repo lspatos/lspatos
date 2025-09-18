@@ -104,7 +104,8 @@ const mapas = {
     "Av. da Vitória, 201 - Santa Terezinha",
     "R. Minas Gerais, 688 - Santa Terezinha",
     "R. Espírito Santo, 557 - Várzea",
-    "R. Dr. Marcolino, 593 - Centro"
+    "R. Dr. Marcolino, 593 - Centro",
+    "R. Presidente Olegário, 78 - Sta. Terezinha"
   ]
 };
 
