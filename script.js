@@ -96,7 +96,8 @@ const mapas = {
     "R. Guilherme Vilela, 507 - Nossa Sra. Aparecida",
     "R. Duque de Caxias, 915 - Nossa Sra. Aparecida",
     "Tv. Hélio José da Silva, 50 - Nossa Sra. Aparecida",
-    "Av. Joaquim Fubá, 226 - Nossa Sra. Aparecida"
+    "Av. Joaquim Fubá, 226 - Nossa Sra. Aparecida",
+    "Rua Tito Silva, 521 - São José Operária"
   ],
   "Mapa 13": [
     "R. Betim, 25 - Santa Terezinha",
@@ -105,6 +106,7 @@ const mapas = {
     "R. Minas Gerais, 688 - Santa Terezinha",
     "R. Espírito Santo, 557 - Várzea",
     "R. Dr. Marcolino, 593 - Centro",
+    "R. Carmo do Paranaíba, 572 - Vila Rosa",
     "R. Presidente Olegário, 78 - Sta. Terezinha"
   ]
 };
