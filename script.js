@@ -23,7 +23,7 @@ const mapas = {
   "Mapa 03": [
     "R. José Valadares de Oliveira, 41 - Planalto",
     "R. Sebastião Silva, 197 - Cidade Nova",
-    "R. Mario Aleixo Caixeta, 20 - Jardim Céu Azul",
+    "R. Mario Aleixo Caixeta, 20 - Jardim Céu Azul"
   ],
   "Mapa 04": [
     "R. Oristila Abdo, 330 - Alto Limoeiro",
