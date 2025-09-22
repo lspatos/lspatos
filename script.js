@@ -36,7 +36,6 @@ const mapas = {
   ],
   "Mapa 05": [
     "R. Carinhanha, 142 - Jardim Esperanca",
-    "R. Zulmira Viêira de Araújo, 928 - Jardim Esperanca",
     "R. Dos Balsamos, 106 - Jardim Esperanca",
     "R. das Guarirobas, 111 - Jardim Esperanca",
     "R. dos Pinheiros, 510 - Morada do Sol",
