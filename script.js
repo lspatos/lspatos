@@ -68,7 +68,7 @@ const mapas = {
     "R. Toinzinho Amâncio, 154 - Centro",
     "R. Trinta e Um de Março, 164 - São Francisco",
     "R. Rui Corrêa, 45 - São Francisco",
-    "R. Oscar de Souza, 65 - São Francisco",
+    "IR ANCIÃO - R. Oscar de Souza, 65 - São Francisco",
     "R. Ver. Adalto Antonio Gonçalves, 145 - São Francisco"
   ],
   "Mapa 10": [
