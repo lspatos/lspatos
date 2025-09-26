@@ -9,7 +9,8 @@ const mapas = {
     "R. Zina Rocha, 748 - Nossa Sra. das Gracas",
     "R. Corinto, 108 - Padre Eustaquio",
     "R. José Miguel de Sousa, 115 - Padre Eustaquio",
-    "R. São Geraldo, 874 - Lagoinha"
+    "R. São Geraldo, 874 - Lagoinha",
+    "R. Lázaro Tadeu Pereira, 84 - Alvorada"
   ],
   "Mapa 02": [
     "R. Zeca Filgueira, 509 - Nossa Sra. das Gracas",
@@ -67,15 +68,16 @@ const mapas = {
   "Mapa 09": [
     "R. Toinzinho Amâncio, 154 - Centro",
     "R. Trinta e Um de Março, 164 - São Francisco",
-    "R. Rui Corrêa, 45 - São Francisco",
     "IR ANCIÃO - R. Oscar de Souza, 65 - São Francisco",
-    "R. Ver. Adalto Antonio Gonçalves, 145 - São Francisco"
+    "R. Ver. Adalto Antonio Gonçalves, 145 - São Francisco",
+    "R. Dr. Marcolino, 593, apto 101 - Centro"
   ],
   "Mapa 10": [
     "R. José de Anchieta, 137 - Jardim América",
     "R. Onofre Gonçalves, 27 - Jardim América",
     "R. Anicésio Vieira, 404 - Rosário",
     "Tv. Maria Inês de Jesus, 121 - Rosário",
+    "Tv. Antero Eduardo, 346 - Rosário",
     "R. Zama Alves, 259 - Lagoinha",
     "R. Padre Pavoni, 26 - Rosário",
     "R. Antônio Bernardes, 47 - Nossa Sra. das Graças"
@@ -84,12 +86,12 @@ const mapas = {
     "Tv. Trinta, 39 - A Definir, Patos de Minas",
     "Tv. Trinta, 33 - A Definir, Patos de Minas",
     "R. Paraíba, 514 - Cristo Redentor",
-    "R. Daniel Alves Beluco, 49 - Cristo Redentor",
     "R. Cônego Getúlio, 1088 - Centro",
     "R. Roberto de Assis Martins, 155 - Jardim Paulistano",
     "R. Espírito Santo, 1245 - Várzea"
   ],
   "Mapa 12": [
+    "R. Pres. Olegário, 78 - Santa Terezinha",
     "R. Aristeu Pereira Cardoso, 26 - Várzea",
     "R. Ver. João Pacheco, 315 - Santo Antônio",
     "R. Guilherme Vilela, 400 - Nossa Sra. Aparecida",
@@ -106,8 +108,8 @@ const mapas = {
     "R. Minas Gerais, 688 - Santa Terezinha",
     "R. Espírito Santo, 557 - Várzea",
     "R. Dr. Marcolino, 593 - Centro",
-    "R. Carmo do Paranaíba, 572 - Vila Rosa",
-    "R. Presidente Olegário, 78 - Sta. Terezinha"
+    "R. Presidente Olegário, 78 - Sta. Terezinha",
+    "R. Carmo do Paranaíba, 572 - Vila Rosa"
   ]
 };
 
