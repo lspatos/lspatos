@@ -44,7 +44,6 @@ const mapas = {
     "Tv. Durval de Dom Vieira, 30 - Jardim Esperanca"
   ],
   "Mapa 06": [
-    "R. Joana da Rocha Andrade, 60 - Cidade Jardim",
     "R. Almério José de Souza, 561 - Boa Vista",
     "R. João Dias Soares, 89 - Jardim Recanto",
     "R. Ricardo Ferreira Ribeiro, 211 - Sebastião Amorim",
