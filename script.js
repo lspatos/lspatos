@@ -125,9 +125,15 @@ function gerarEnderecos(nomeMapa) {
   mapas[nomeMapa].forEach((endereco, i) => {
     const div = document.createElement("div");
     div.className = "container_end";
+
+    // Verifica se o endereço contém "IR ANCIÃO"
+    const isAncian = endereco.toUpperCase().includes("IR ANCIÃO");
+    const classeExtra = isAncian ? "anciano" : "";
+
     div.innerHTML = `
       <h4>${i + 1}. ${endereco}</h4>
-      <div class="entradas">
+      ${isAncian ? '<p class="tag-anciano">👴 IR ANCIÃO</p>' : ""}
+      <div class="entradas ${classeExtra}">
         <button onclick="handleSubmit('Encontrado', '${nomeMapa}', '${endereco}')"
           class="btn-verde">✔ Encontrado</button>
         <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', '${endereco}')"
