@@ -1,4 +1,4 @@
-// URL DO PROXY NO NETLIFY (troque pelo seu domínio se mudar)
+// URL DO PROXY NO NETLIFY
 const proxyURL = "https://friendly-selkie-afda9c.netlify.app/.netlify/functions/proxy";
 
 // ENDEREÇOS DE CADA MAPA
@@ -127,17 +127,15 @@ function gerarEnderecos(nomeMapa) {
     div.className = "container_end";
 
     // Verifica se o endereço contém "IR ANCIÃO"
-    const isAncian = endereco.toUpperCase().includes("IR ANCIÃO");
-    const classeExtra = isAncian ? "anciano" : "";
+    const isAnciao = endereco.toUpperCase().includes("IR ANCIÃO");
+    if (isAnciao) div.classList.add("anciao");
 
     div.innerHTML = `
       <h4>${i + 1}. ${endereco}</h4>
-      ${isAncian ? '<p class="tag-anciano">👴 IR ANCIÃO</p>' : ""}
-      <div class="entradas ${classeExtra}">
-        <button onclick="handleSubmit('Encontrado', '${nomeMapa}', '${endereco}')"
-          class="btn-verde">✔ Encontrado</button>
-        <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', '${endereco}')"
-          class="btn-vermelho">✖ Não encontrado</button>
+      ${isAnciao ? '<p class="tag-anciao">👴 IR ANCIÃO</p>' : ""}
+      <div class="entradas">
+        <button onclick="handleSubmit('Encontrado', '${nomeMapa}', '${endereco}')" class="btn-verde">✔ Encontrado</button>
+        <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', '${endereco}')" class="btn-vermelho">✖ Não encontrado</button>
         <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank">
           <button class="btn-endereco"> 🗺 Maps </button>
         </a>
