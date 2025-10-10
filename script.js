@@ -124,14 +124,14 @@ function gerarEnderecos(nomeMapa) {
 
   mapas[nomeMapa].forEach((endereco, i) => {
     const div = document.createElement("div");
-    div.className = "container_end";
+    const isAnc = /ir\s*anci[ãa]o/i.test(endereco); // detecta "IR ANCIÃO"
+
+    div.className = "container_end" + (isAnc ? " anciao" : "");
     div.innerHTML = `
       <h4>${i + 1}. ${endereco}</h4>
       <div class="entradas">
-        <button onclick="handleSubmit('Encontrado', '${nomeMapa}', '${endereco}')"
-          class="btn-verde">✔ Encontrado</button>
-        <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', '${endereco}')"
-          class="btn-vermelho">✖ Não encontrado</button>
+        <button onclick="handleSubmit('Encontrado', '${nomeMapa}', '${endereco}')" class="btn-verde">✔ Encontrado</button>
+        <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', '${endereco}')" class="btn-vermelho">✖ Não encontrado</button>
         <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank">
           <button class="btn-endereco"> 🗺 Maps </button>
         </a>
