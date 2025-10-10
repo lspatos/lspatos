@@ -1,6 +1,4 @@
-script.js:
-
-// URL DO PROXY NO NETLIFY (troque pelo seu domínio se mudar)
+// URL DO PROXY NO NETLIFY
 const proxyURL = "https://friendly-selkie-afda9c.netlify.app/.netlify/functions/proxy";
 
 // ENDEREÇOS DE CADA MAPA
