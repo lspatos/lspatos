@@ -112,3 +112,19 @@ span{
 .info_rodape p {
     font-size: 11px;
 }
+
+/* === Destaque para endereços com IR ANCIÃO === */
+.tag-anciano {
+    background-color: #ffcc00;
+    color: #000;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.container_end.anciano {
+    border: 2px solid gold;
+    background-color: #fff8dc;
+}
