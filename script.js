@@ -16,7 +16,7 @@ const mapas = {
     "R. Zeca Filgueira, 509 - Nossa Sra. das Gracas",
     "R. Marta Eulália Ferreira, 230 - Cerrado",
     "R. Muriaé, 290 - Padre Eustaquio",
-    "R. Três Pontas, 149 - Padre Eustaquio",
+    "IR ANCIÃO - R. Três Pontas, 149 - Padre Eustaquio",
     "R. São Geraldo, 682 - Lagoinha",
     "R. Maria Helena de Jesus, 177 - Cerrado",
     "R. Antônio Severo, 77 - Laranjeiras"
