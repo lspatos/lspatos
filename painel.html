@@ -62,25 +62,29 @@
     .graficos-lado-a-lado {
       display: flex;
       justify-content: center;
-      align-items: flex-start;
+      align-items: stretch;
       gap: 40px;
       flex-wrap: wrap;
       margin-top: 40px;
     }
-
+    
     .grafico-container,
     .grafico-barras {
-      flex: 1 1 400px;
-      max-width: 480px;
+      flex: 1 1 450px;
+      max-width: 450px;
+      height: 450px; /* 🔹 mesma altura */
       background: #fff;
       border-radius: 10px;
-      padding: 20px;
+      padding: 25px;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-
+    
     canvas {
       width: 100% !important;
-      height: auto !important;
+      height: 100% !important; /* 🔹 garante proporção igual */
     }
 
     .filtro {
