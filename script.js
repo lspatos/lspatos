@@ -241,6 +241,21 @@ async function gerarEnderecos(nomeMapa) {
   });
 }
 
+// Função de busca
+const searchInput = document.getElementById("searchInput");
+
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    const term = searchInput.value.toLowerCase();
+    const addressItems = document.querySelectorAll(".address-item");
+
+    addressItems.forEach((item) => {
+      const addressText = item.querySelector(".address-text").textContent.toLowerCase();
+      item.style.display = addressText.includes(term) ? "block" : "none";
+    });
+  });
+}
+
 // ==========================
 // ENVIO DE DADOS (PROXY)
 // ==========================
