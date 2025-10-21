@@ -292,3 +292,54 @@ function showToast(msg) {
   clearTimeout(globalToast.timeout);
   globalToast.timeout = setTimeout(() => (globalToast.style.display = "none"), 3000);
 }
+// ==========================
+// EXPORTAR PARA PDF
+// ==========================
+
+function exportarParaPDF() {
+    // 1. Ocultar elementos indesejados no PDF (botões, feedback de tempo)
+    const elementosParaOcultar = document.querySelectorAll('.entradas, .container_end p');
+    elementosParaOcultar.forEach(el => el.style.display = 'none');
+
+    // 2. Definir o elemento a ser capturado (o body inteiro, ou um container específico)
+    const elemento = document.body; 
+    
+    // Ocultar o botão de download para que ele não apareça no print
+    document.getElementById('btn-download').style.display = 'none';
+
+    // 3. Capturar o HTML como uma imagem (html2canvas)
+    html2canvas(elemento, { 
+        scale: 2, // Aumenta a resolução da imagem para melhor qualidade de impressão
+        scrollY: -window.scrollY // Garante que a captura comece do topo
+    }).then(canvas => {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' retrato, 'mm' milímetros, 'a4' tamanho
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = pdf.getImageProperties(imgData);
+        
+        // Calcular as dimensões para caber na página A4, mantendo a proporção
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        // Adicionar a imagem ao PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+        // Obter o nome do mapa para o nome do arquivo
+        const nomeMapa = document.getElementById('titulo-mapa').textContent.replace(/\s+/g, '-');
+        
+        // Salvar o arquivo PDF
+        pdf.save(`${nomeMapa}_Enderecos.pdf`);
+
+        // 4. Restaurar a visibilidade dos elementos originais
+        elementosParaOcultar.forEach(el => el.style.display = 'block');
+        document.getElementById('btn-download').style.display = 'block';
+    }).catch(error => {
+        console.error("Erro ao gerar PDF:", error);
+        alert("Não foi possível gerar o PDF. Verifique o console para detalhes.");
+
+        // Restaurar a visibilidade mesmo em caso de erro
+        elementosParaOcultar.forEach(el => el.style.display = 'block');
+        document.getElementById('btn-download').style.display = 'block';
+    });
+}
