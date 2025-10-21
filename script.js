@@ -1,7 +1,15 @@
-// URL DO PROXY NO CLOUDFLARE
-const proxyURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+// ==========================
+// CONFIGURAÇÕES INICIAIS
+// ==========================
 
-// ENDEREÇOS DE CADA MAPA
+// URL do seu proxy / Apps Script
+const proxyURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+const planilhaAPI = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
+
+// ==========================
+// MAPAS E ENDEREÇOS
+// ==========================
+
 const mapas = {
   "Mapa 01": [
     "R. Antônia Carrilho, 115 - Res. Barreiro",
@@ -16,7 +24,7 @@ const mapas = {
     "R. Zeca Filgueira, 509 - Nossa Sra. das Gracas",
     "R. Marta Eulália Ferreira, 230 - Cerrado",
     "R. Muriaé, 290 - Padre Eustaquio",
-    "IR ANCIÃO - R. Três Pontas, 149 - Padre Eustaquio",
+    "R. Três Pontas, 149 - Padre Eustaquio",
     "R. São Geraldo, 682 - Lagoinha",
     "R. Maria Helena de Jesus, 177 - Cerrado",
     "R. Antônio Severo, 77 - Laranjeiras"
@@ -112,9 +120,66 @@ const mapas = {
   ]
 };
 
-// GERA OS ENDEREÇOS DINAMICAMENTE
-function gerarEnderecos(nomeMapa) {
+// ==========================
+// FUNÇÕES DE APOIO
+// ==========================
+
+// Busca registros (últimos 90 dias)
+async function buscarRegistros() {
+  try {
+    const res = await fetch(planilhaAPI);
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+
+    const hoje = new Date();
+    const limite = new Date();
+    limite.setDate(hoje.getDate() - 90);
+
+    return data.filter(item => {
+      const dataItem = new Date(item["Data e Hora"]);
+      return !isNaN(dataItem) && dataItem >= limite;
+    });
+  } catch (e) {
+    console.error("Erro ao carregar registros:", e);
+    return [];
+  }
+}
+
+// Calcula tempo desde última visita
+function infoUltimaVisita(registros, endereco) {
+  const reg = registros
+    .filter(r => (r.Endereço || r["Endereco"] || "").trim().toLowerCase() === endereco.trim().toLowerCase())
+    .sort((a, b) => new Date(b["Data e Hora"]) - new Date(a["Data e Hora"]))[0];
+
+  if (!reg) return { texto: "Sem visitas registradas", cor: "#888" };
+
+  const ultima = new Date(reg["Data e Hora"]);
+  const hoje = new Date();
+  const diff = Math.floor((hoje - ultima) / (1000 * 60 * 60 * 24));
+
+  let texto;
+  if (diff === 0) texto = "Visitado hoje";
+  else if (diff === 1) texto = "Sem visita há 1 dia";
+  else if (diff > 90) texto = "Sem visita há +90 dias";
+  else texto = `Sem visita há ${diff} dias`;
+
+  let cor;
+  if (diff <= 7) cor = "#2e7d32"; // verde
+  else if (diff <= 30) cor = "#f9a825"; // amarelo
+  else cor = "#c62828"; // vermelho
+
+  return { texto, cor };
+}
+
+// ==========================
+// GERA OS ENDEREÇOS
+// ==========================
+
+async function gerarEnderecos(nomeMapa) {
   const container = document.getElementById("enderecos");
+  container.innerHTML = "<p>⏳ Carregando endereços...</p>";
+
+  const registros = await buscarRegistros();
   container.innerHTML = "";
 
   if (!mapas[nomeMapa]) {
@@ -124,16 +189,18 @@ function gerarEnderecos(nomeMapa) {
 
   mapas[nomeMapa].forEach((endereco, i) => {
     const div = document.createElement("div");
-    const isAnc = /ir\s*anci[ãa]o/i.test(endereco); // detecta "IR ANCIÃO"
+    const isAnc = /ir\s*anci[ãa]o/i.test(endereco);
+    const info = infoUltimaVisita(registros, endereco);
 
     div.className = "container_end" + (isAnc ? " anciao" : "");
     div.innerHTML = `
       <h4>${i + 1}. ${endereco}</h4>
+      <p style="font-size:13px; color:${info.cor}; margin-top:4px; font-weight:500;">🕒 ${info.texto}</p>
       <div class="entradas">
         <button onclick="handleSubmit('Encontrado', '${nomeMapa}', '${endereco}')" class="btn-verde">✔ Encontrado</button>
         <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', '${endereco}')" class="btn-vermelho">✖ Não encontrado</button>
         <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank">
-          <button class="btn-endereco"> 🗺 Maps </button>
+          <button class="btn-endereco">🗺 Maps</button>
         </a>
       </div>
     `;
@@ -141,12 +208,14 @@ function gerarEnderecos(nomeMapa) {
   });
 }
 
-// ENVIO PARA GOOGLE SHEETS (VIA PROXY)
+// ==========================
+// ENVIO DE DADOS (PROXY)
+// ==========================
+
 async function handleSubmit(status, setor, endereco) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const payload = { dataHora, status, setor, endereco };
 
-  // Feedback imediato ao usuário
   showToast("⏳ Enviando...");
 
   try {
@@ -157,28 +226,19 @@ async function handleSubmit(status, setor, endereco) {
     });
 
     let resultText = await response.text();
-    console.log("Resposta bruta:", resultText);
+    let ok = /success|ok/i.test(resultText);
 
-    let ok = false;
-    try {
-      const parsed = JSON.parse(resultText);
-      ok = parsed.result?.toLowerCase() === "success";
-    } catch {
-      ok = /ok|success/i.test(resultText);
-    }
-
-    if (ok) {
-      showToast("✅ Resposta registrada com sucesso!");
-    } else {
-      showToast("⚠ Erro no envio.");
-    }
+    showToast(ok ? "✅ Resposta registrada com sucesso!" : "⚠ Erro no envio.");
   } catch (error) {
     console.error("Erro ao enviar:", error);
     showToast("❌ Falha na conexão.");
   }
 }
 
-// TOAST DE FEEDBACK (reutilizável)
+// ==========================
+// TOAST DE FEEDBACK
+// ==========================
+
 let globalToast;
 function showToast(msg) {
   if (!globalToast) {
@@ -196,39 +256,6 @@ function showToast(msg) {
   }
   globalToast.textContent = msg;
   globalToast.style.display = "block";
-
   clearTimeout(globalToast.timeout);
-  globalToast.timeout = setTimeout(() => {
-    globalToast.style.display = "none";
-  }, 3000);
-}
-// 🔹 Busca registros da planilha (últimas visitas)
-async function buscarRegistros() {
-  try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec");
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch (e) {
-    console.error("Erro ao carregar registros:", e);
-    return [];
-  }
-}
-
-// 🔹 Retorna quantos dias desde a última visita de um endereço
-function diasDesdeUltimaVisita(registros, endereco) {
-  const reg = registros
-    .filter(r => (r.Endereço || r["Endereco"] || "").trim().toLowerCase() === endereco.trim().toLowerCase())
-    .sort((a, b) => new Date(b["Data e Hora"]) - new Date(a["Data e Hora"]))[0];
-
-  if (!reg) return "Sem visitas registradas";
-
-  const ultima = new Date(reg["Data e Hora"]);
-  const hoje = new Date();
-  const diff = Math.floor((hoje - ultima) / (1000 * 60 * 60 * 24));
-
-  return diff === 0
-    ? "Visitado hoje"
-    : diff === 1
-    ? "Sem visita há 1 dia"
-    : `Sem visita há ${diff} dias`;
+  globalToast.timeout = setTimeout(() => (globalToast.style.display = "none"), 3000);
 }
