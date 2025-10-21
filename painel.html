@@ -129,6 +129,11 @@
 
   <!-- 🔹 Indicadores -->
   <div class="indicadores" id="indicadores">
+      <!-- 🔹 Mapas menos atualizados -->
+    <div id="mapasAntigos" class="card" style="max-width:600px; margin:0 auto 30px auto;">
+      <h3>🕒 Mapas com mais tempo sem atualização</h3>
+      <ul id="listaAntigos" style="list-style:none; padding-left:0; margin-top:10px; text-align:left;"></ul>
+    </div>
     <div class="card"><h3>Último ciclo</h3><p id="ultimoCiclo">-</p></div>
     <div class="card"><h3>Média dos ciclos</h3><p id="mediaCiclos">-</p></div>
     <div class="card"><h3>Dias desde o último ciclo</h3><p id="diasDesde">-</p></div>
@@ -175,6 +180,7 @@
         preencherFiltro(dados);
         atualizarPainel("todos");
         calcularIndicadores(dados);
+        mostrarMapasAntigos(dados);
 
       } catch (err) {
         console.error("Erro ao carregar:", err);
@@ -254,7 +260,38 @@
           inicioCiclo = r.data;
         }
       }
-
+        // 🔹 Mostrar os 4 mapas com mais tempo sem atualização
+      function mostrarMapasAntigos(dados) {
+        const registrosPorMapa = {};
+  
+        // Agrupa o registro mais recente de cada mapa
+        dados.forEach(d => {
+          const setor = d.Setor || d.setor;
+          const data = new Date(d["Data e Hora"] || d.dataHora);
+          if (!registrosPorMapa[setor] || data > registrosPorMapa[setor]) {
+            registrosPorMapa[setor] = data;
+          }
+        });
+  
+        // Calcula o tempo desde a última atualização
+        const hoje = new Date();
+        const lista = Object.entries(registrosPorMapa).map(([setor, ultimaData]) => ({
+          setor,
+          dias: Math.round((hoje - ultimaData) / (1000 * 60 * 60 * 24))
+        }));
+  
+        // Ordena do mais antigo pro mais recente
+        lista.sort((a, b) => b.dias - a.dias);
+  
+        // Pega os 4 piores
+        const top4 = lista.slice(0, 4);
+  
+        // Exibe
+        const ul = document.getElementById("listaAntigos");
+        ul.innerHTML = top4.map(item =>
+          `<li>🔸 <strong>${item.setor}</strong> — ${item.dias} dias</li>`
+        ).join("");
+      }
       // 🧮 Indicadores principais
       const ultimo = ciclos[ciclos.length - 1];
       const media = ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length || 0;
