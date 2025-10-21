@@ -1,5 +1,5 @@
-// URL DO PROXY NO NETLIFY
-const proxyURL = "https://friendly-selkie-afda9c.netlify.app/.netlify/functions/proxy";
+// URL DO PROXY NO CLOUDFLARE
+const proxyURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/api";
 
 // ENDEREÇOS DE CADA MAPA
 const mapas = {
