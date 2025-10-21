@@ -202,3 +202,33 @@ function showToast(msg) {
     globalToast.style.display = "none";
   }, 3000);
 }
+// 🔹 Busca registros da planilha (últimas visitas)
+async function buscarRegistros() {
+  try {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec");
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error("Erro ao carregar registros:", e);
+    return [];
+  }
+}
+
+// 🔹 Retorna quantos dias desde a última visita de um endereço
+function diasDesdeUltimaVisita(registros, endereco) {
+  const reg = registros
+    .filter(r => (r.Endereço || r["Endereco"] || "").trim().toLowerCase() === endereco.trim().toLowerCase())
+    .sort((a, b) => new Date(b["Data e Hora"]) - new Date(a["Data e Hora"]))[0];
+
+  if (!reg) return "Sem visitas registradas";
+
+  const ultima = new Date(reg["Data e Hora"]);
+  const hoje = new Date();
+  const diff = Math.floor((hoje - ultima) / (1000 * 60 * 60 * 24));
+
+  return diff === 0
+    ? "Visitado hoje"
+    : diff === 1
+    ? "Sem visita há 1 dia"
+    : `Sem visita há ${diff} dias`;
+}
