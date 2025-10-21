@@ -17,13 +17,52 @@
       color: #5c3d89;
     }
 
+    .indicadores {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin: 25px 0;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      padding: 15px 20px;
+      text-align: center;
+      min-width: 180px;
+    }
+
+    .card h3 {
+      font-size: 15px;
+      color: #5c3d89;
+      margin-bottom: 5px;
+    }
+
+    .card p {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .alerta {
+      color: #f44336;
+      font-weight: bold;
+      animation: piscar 1s infinite alternate;
+    }
+
+    @keyframes piscar {
+      from { opacity: 1; }
+      to { opacity: 0.4; }
+    }
+
     .filtro {
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 10px;
-      margin-top: 20px;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     select {
@@ -46,11 +85,6 @@
       max-width: 600px;
       margin: 50px auto;
       position: relative;
-    }
-
-    canvas {
-      width: 100% !important;
-      height: auto !important;
     }
 
     table {
@@ -77,18 +111,20 @@
       text-align: center;
       color: #5c3d89;
     }
-
-    #resumoCiclo {
-      text-align: center;
-      margin-top: 30px;
-      color: #333;
-    }
   </style>
 </head>
 <body>
   <h1>Painel de Resultados LS MAPAS</h1>
 
-  <!-- 🔹 Filtro de mapa -->
+  <!-- 🔹 Indicadores -->
+  <div class="indicadores" id="indicadores">
+    <div class="card"><h3>Último ciclo</h3><p id="ultimoCiclo">-</p></div>
+    <div class="card"><h3>Média dos ciclos</h3><p id="mediaCiclos">-</p></div>
+    <div class="card"><h3>Dias desde o último ciclo</h3><p id="diasDesde">-</p></div>
+    <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
+  </div>
+
+  <!-- 🔹 Filtro -->
   <div class="filtro">
     <label for="filtroMapa">Filtrar por mapa:</label>
     <select id="filtroMapa">
@@ -98,20 +134,16 @@
 
   <p id="status">⏳ Carregando dados...</p>
 
-  <!-- 🔹 Resumo de ciclo -->
-  <div id="resumoCiclo"></div>
-
   <!-- 🔹 Gráfico de pizza -->
   <div class="grafico-container">
     <canvas id="grafico"></canvas>
   </div>
 
-  <!-- 🔹 Gráfico de barras de ciclos -->
+  <!-- 🔹 Gráfico de barras -->
   <div class="grafico-barras">
     <canvas id="graficoCiclos"></canvas>
   </div>
 
-  <!-- 🔹 Tabela -->
   <div id="tabela"></div>
 
   <script>
@@ -130,7 +162,7 @@
         document.getElementById("status").style.display = "none";
         preencherFiltro(dados);
         atualizarPainel("todos");
-        calcularCiclos(dados);
+        calcularIndicadores(dados);
 
       } catch (err) {
         console.error("Erro ao carregar:", err);
@@ -187,8 +219,8 @@
         </table>`;
     }
 
-    // 🔹 Calcula ciclos e gera gráfico histórico
-    function calcularCiclos(dados) {
+    // 🔹 Indicadores e ciclos
+    function calcularIndicadores(dados) {
       const registros = dados.map(d => ({
         setor: d.Setor || d.setor,
         data: new Date(d["Data e Hora"] || d.dataHora)
@@ -211,25 +243,31 @@
         }
       }
 
-      const resumoDiv = document.getElementById("resumoCiclo");
-      if (ciclos.length > 0) {
-        const ultimo = ciclos[ciclos.length - 1];
-        resumoDiv.innerHTML = `
-          <h3>🕒 Último ciclo completo</h3>
-          <p>${ultimo.duracaoDias} dias entre 
-          ${ultimo.inicio.toLocaleDateString("pt-BR")} e 
-          ${ultimo.fim.toLocaleDateString("pt-BR")}</p>`;
+      // 🧮 Indicadores principais
+      const ultimo = ciclos[ciclos.length - 1];
+      const media = ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length || 0;
+      const hoje = new Date();
+      const diasDesde = ultimo ? Math.round((hoje - ultimo.fim) / (1000 * 60 * 60 * 24)) : "-";
+      const cicloAtualDias = Math.round((hoje - inicioCiclo) / (1000 * 60 * 60 * 24));
+
+      document.getElementById("ultimoCiclo").textContent = ultimo
+        ? `${ultimo.duracaoDias} dias`
+        : "-";
+      document.getElementById("mediaCiclos").textContent = `${media.toFixed(1)} dias`;
+      document.getElementById("diasDesde").textContent = `${diasDesde} dias`;
+
+      const statusCiclo = document.getElementById("statusCiclo");
+      if (cicloAtualDias > media && ciclos.length > 0) {
+        statusCiclo.innerHTML = `<span class="alerta">Atrasado (${cicloAtualDias} dias)</span>`;
       } else {
-        const faltando = totalMapas - visitados.size;
-        resumoDiv.innerHTML = `
-          <h3>⏳ Ciclo atual em andamento</h3>
-          <p>Faltam ${faltando} mapas para completar (${totalMapas} no total).</p>`;
+        statusCiclo.textContent = `Dentro da média (${cicloAtualDias} dias)`;
+        statusCiclo.style.color = "#4caf50";
       }
 
       gerarGraficoCiclos(ciclos);
     }
 
-    // 🔹 Novo gráfico de barras: duração de cada ciclo
+    // 🔹 Gráfico de barras (histórico de ciclos)
     function gerarGraficoCiclos(ciclos) {
       if (graficoCiclos) graficoCiclos.destroy();
 
@@ -254,14 +292,9 @@
         options: {
           plugins: {
             legend: { display: false },
-            title: {
-              display: true,
-              text: "Duração de cada ciclo (em dias)"
-            }
+            title: { display: true, text: "Duração de cada ciclo (em dias)" }
           },
-          scales: {
-            y: { beginAtZero: true }
-          }
+          scales: { y: { beginAtZero: true } }
         }
       });
     }
