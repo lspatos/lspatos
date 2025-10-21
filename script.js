@@ -178,10 +178,11 @@ function infoUltimaVisita(registros, endereco) {
 async function gerarEnderecos(nomeMapa) {
   const container = document.getElementById("enderecos");
 
-  // 🔹 Exibe skeleton enquanto carrega
+  // 🔹 Exibe skeleton proporcional ao número de endereços do mapa
+  const quantidade = mapas[nomeMapa]?.length || 6; // usa o número real, ou 6 por padrão
   container.innerHTML = `
     <div class="skeleton-container">
-      ${Array(6).fill('<div class="skeleton-card"></div>').join("")}
+      ${Array(quantidade).fill('<div class="skeleton-card"></div>').join("")}
     </div>
   `;
 
