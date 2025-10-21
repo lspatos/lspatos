@@ -6,85 +6,70 @@
   <title>Painel LS MAPAS</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: "Montserrat", sans-serif;
-      padding: 20px;
-      background-color: #fafafa;
-    }
-    h1 {
-      text-align: center;
-      color: #5c3d89;
-    }
-    .grafico-container {
-      max-width: 600px;
-      margin: 40px auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-      background: white;
-      box-shadow: 0 0 8px rgba(0,0,0,0.05);
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-      font-size: 14px;
-    }
-    th {
-      background-color: #5c3d89;
-      color: white;
-    }
+    body { font-family: "Montserrat", sans-serif; padding: 20px; background: #fafafa; }
+    h1 { text-align: center; color: #5c3d89; }
+    .grafico-container { max-width: 600px; margin: 40px auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #5c3d89; color: white; }
   </style>
 </head>
 <body>
   <h1>Painel de Resultados LS MAPAS</h1>
-
-  <div class="grafico-container">
-    <canvas id="grafico"></canvas>
-  </div>
-
+  <p id="status">⏳ Carregando dados...</p>
+  <div class="grafico-container"><canvas id="grafico"></canvas></div>
   <div id="tabela"></div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
 
     async function carregarDados() {
-      const res = await fetch(API_URL);
-      const dados = await res.json();
+      try {
+        console.log("Buscando dados de:", API_URL);
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error("Erro HTTP " + res.status);
+        const dados = await res.json();
+        console.log("Dados recebidos:", dados);
 
-      // Contar status
-      const encontrados = dados.filter(d => d.status === "Encontrado").length;
-      const naoEncontrados = dados.filter(d => d.status === "Não encontrado").length;
+        if (!Array.isArray(dados) || dados.length === 0) {
+          document.getElementById("status").textContent = "Nenhum dado encontrado.";
+          return;
+        }
 
-      // Gráfico de pizza
-      new Chart(document.getElementById("grafico"), {
-        type: "doughnut",
-        data: {
-          labels: ["Encontrado", "Não encontrado"],
-          datasets: [{
-            data: [encontrados, naoEncontrados],
-            backgroundColor: ["#4caf50", "#f44336"]
-          }]
-        },
-        options: { plugins: { legend: { position: "bottom" } } }
-      });
+        document.getElementById("status").style.display = "none";
 
-      // Gerar tabela
-      const linhas = dados.map(d => `
-        <tr>
-          <td>${d.dataHora}</td>
-          <td>${d.setor}</td>
-          <td>${d.endereco}</td>
-          <td>${d.status}</td>
-        </tr>`).join("");
+        const encontrados = dados.filter(d => d.Status === "Encontrado" || d.status === "Encontrado").length;
+        const naoEncontrados = dados.filter(d => d.Status === "Não encontrado" || d.status === "Não encontrado").length;
 
-      document.getElementById("tabela").innerHTML = `
-        <table>
-          <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
-          ${linhas}
-        </table>`;
+        new Chart(document.getElementById("grafico"), {
+          type: "doughnut",
+          data: {
+            labels: ["Encontrado", "Não encontrado"],
+            datasets: [{
+              data: [encontrados, naoEncontrados],
+              backgroundColor: ["#4caf50", "#f44336"]
+            }]
+          },
+          options: { plugins: { legend: { position: "bottom" } } }
+        });
+
+        const linhas = dados.map(d => `
+          <tr>
+            <td>${d["Data e Hora"] || d.dataHora}</td>
+            <td>${d.Setor || d.setor}</td>
+            <td>${d.Endereço || d.endereco}</td>
+            <td>${d.Status || d.status}</td>
+          </tr>`).join("");
+
+        document.getElementById("tabela").innerHTML = `
+          <table>
+            <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
+            ${linhas}
+          </table>`;
+      } catch (err) {
+        console.error("Erro ao carregar:", err);
+        document.getElementById("status").textContent = "❌ Erro ao carregar dados. Verifique o console.";
+      }
     }
 
     carregarDados();
