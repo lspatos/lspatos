@@ -177,10 +177,16 @@ function infoUltimaVisita(registros, endereco) {
 
 async function gerarEnderecos(nomeMapa) {
   const container = document.getElementById("enderecos");
-  container.innerHTML = "<p>⏳ Carregando endereços...</p>";
 
-  const registros = await buscarRegistros();
-  container.innerHTML = "";
+  // 🔹 Exibe skeleton enquanto carrega
+  container.innerHTML = `
+    <div class="skeleton-container">
+      ${Array(6).fill('<div class="skeleton-card"></div>').join("")}
+    </div>
+  `;
+
+  const registros = await buscarRegistros(); // busca dados recentes
+  container.innerHTML = ""; // limpa após carregamento
 
   if (!mapas[nomeMapa]) {
     container.innerHTML = "<p>Nenhum endereço cadastrado.</p>";
