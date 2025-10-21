@@ -12,111 +12,137 @@ const planilhaAPI = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVqu
 
 const mapas = {
   "Mapa 01": [
-    "R. Antônia Carrilho, 115 - Res. Barreiro",
-    "Av. Dep. Binga, 56 - Nossa Sra. de Fátima",
-    "R. Zina Rocha, 748 - Nossa Sra. das Gracas",
-    "R. Corinto, 108 - Padre Eustaquio",
-    "R. José Miguel de Sousa, 115 - Padre Eustaquio",
-    "R. São Geraldo, 874 - Lagoinha",
-    "R. Lázaro Tadeu Pereira, 84 - Alvorada"
+    "IR ANCIÃO - R. José Valadares de Oliveira, 41 - Planalto",
+    "R. Sebastião Silva, 197 - Cidade Nova",
+    "R. Mario Aleixo Caixeta, 20 - Jardim Céu Azul",
+    "IR ANCIÃO - R. Augusto Ferreira da Cunha, 349 - Res. Gramado",
+    "Av. Vereador José Caixeta Magalhães, 174 - Ipanema II"
   ],
   "Mapa 02": [
-    "R. Zeca Filgueira, 509 - Nossa Sra. das Gracas",
-    "R. Marta Eulália Ferreira, 230 - Cerrado",
-    "R. Muriaé, 290 - Padre Eustaquio",
-    "R. Três Pontas, 149 - Padre Eustaquio",
-    "R. São Geraldo, 682 - Lagoinha",
-    "R. Maria Helena de Jesus, 177 - Cerrado",
-    "R. Antônio Severo, 77 - Laranjeiras"
+    "R. Zizinho Vida, 934 - Patos de Minas",
+    "R. Ana da Maroca, 136 - Patos de Minas",
+    "R. Oscar Jacinto dos Reis, 224 - Patos de Minas",
+    "R. Carlos Alberto Vilaça, 62 - Jardim Panoramico",
+    "R. Pedro Vicente da Silva, 524 - Patos de Minas"
   ],
   "Mapa 03": [
-    "R. José Valadares de Oliveira, 41 - Planalto",
-    "R. Sebastião Silva, 197 - Cidade Nova",
-    "R. Mario Aleixo Caixeta, 20 - Jardim Céu Azul"
+    "Av. Maria de Fátima Borges, 665 - Sebastião Amorim",
+    "R. Geraldo Caixeta de Queiroz, 45 - Sebastião Amorim",
+    "R. Ricardo Ferreira Ribeiro, 211 - Sebastião Amorim",
+    "R. Almério José de Souza, 561 - Boa Vista",
+    "R. José Álvaro Borges, 466 - Cidade Jardim",
+    "R. João Dias Soares, 89 - Jardim Recanto"
   ],
   "Mapa 04": [
-    "R. Oristila Abdo, 330 - Alto Limoeiro",
-    "R. Angelim, 50 - Alto Maraba",
-    "R. Pacajá, 155 - Jardim Esperança",
-    "R. Padre Bento Engemann, 315 - Res. Monjolo",
-    "R. Laura Fonseca, 575 - Jardim Esperança",
-    "R. Tucuruí, 443 - Jardim Esperança",
-    "R. José Miguel Barbosa, 60 - Patos de Minas"
+    "R. José Miguel Barbosa, 60 - Patos de Minas",
+    "R. Geraldo Luiz da Mota, 615 - Patos de Minas",
+    "Condomínio Terra Nova Patos de Minas I - Casa 89",
+    "R. Oristila Abdo, 330 - Alto Limoeiro"
   ],
   "Mapa 05": [
-    "R. Carinhanha, 142 - Jardim Esperanca",
     "IR ANCIÃO - R. Zulmira Viêira de Araújo, 928 - Jardim Esperanca",
-    "R. Dos Balsamos, 106 - Jardim Esperanca",
-    "R. das Guarirobas, 111 - Jardim Esperanca",
-    "R. dos Pinheiros, 510 - Morada do Sol",
-    "Tv. Durval de Dom Vieira, 30 - Jardim Esperanca"
+    "R. Carinhanha, 142 - Jardim Esperanca",
+    "R. Laura Fonseca, 575 - Jardim Esperanca",
+    "R. Tucuruí, 443 - Jardim Esperanca",
+    "R. Pacajá, 155 - Jardim Esperanca",
+    "R. Acari, 65 - Jardim Esperanca",
+    "R. Angelim, 50 - Alto Maraba"
   ],
   "Mapa 06": [
-    "R. Almério José de Souza, 561 - Boa Vista",
-    "R. João Dias Soares, 89 - Jardim Recanto",
-    "R. Ricardo Ferreira Ribeiro, 211 - Sebastião Amorim",
-    "R. Onófre Resende Silva, 196 - Sebastião Amorim",
-    "Av. Maria de Fátima Borges, 665 - Sebastião Amorim",
-    "R. Geraldo Caixeta de Queiroz, 45 - Sebastião Amorim"
+    "R. Padre Bento Engemann, 315 - Res. Monjolo",
+    "Tv. Durval de Dom Vieira, 30 - Jardim Esperanca",
+    "Tv. e, 10 - Res. Monjolo",
+    "R. das Guarirobas, 111 - Jardim Esperanca",
+    "R. Dos Balsamos, 106 - Jardim Esperanca",
+    "R. dos Pinheiros, 510 - Morada do Sol",
+    "IR ANCIÃO - R. Marieta Eneas Caetano, 55 - Novo Horizonte"
   ],
   "Mapa 07": [
-    "R. Carlos Alberto Vilaça, 62 - Jardim Panoramico",
-    "R. Oscar Jacinto dos Reis, 224 - Patos de Minas",
-    "R. Ana da Maroca, 136 - Patos de Minas",
-    "R. Zizinho Vida, 934 - Patos de Minas"
+    "R. Ver. Filadelphio José da Fonseca, 849 - Nova Floresta",
+    "R. Geraldo Rodrigues dos Santos, 70 - Nova Floresta",
+    "R. Orlando Pedro da Silva, 42 - Abner Afonso",
+    "IR HOMEM - R. Getúlio Borges, 714 - Vila Garcia",
+    "R. Otávio Borges, 521 - Caiçaras",
+    "Rua Doutor José Belluco, 84 - Nova Floresta"
   ],
   "Mapa 08": [
-    "R. Otávio Borges, 521 - Caiçaras",
     "Praça Santa Helena, 27 - Aurélio Caixeta",
-    "R. Rogerio Severino de Almeida, 116 - Abner Afonso",
-    "R. Geraldo Rodrigues dos Santos, 70 - Nova Floresta",
-    "R. Ver. Filadelphio José da Fonseca, 849 - Nova Floresta"
+    "R. Ver. Adalto Antonio Gonçalves, 145 - São Francisco",
+    "IR ANCIÃO - R. Oscar de Souza, 65 - São Francisco",
+    "R. das Acácias, 227 - Jardim Paraiso",
+    "R. Toinzinho Amâncio, 154 - Centro",
+    "R. Trinta e Um de Março, 164 - São Francisco"
   ],
   "Mapa 09": [
-    "R. Toinzinho Amâncio, 154 - Centro",
-    "R. Trinta e Um de Março, 164 - São Francisco",
-    "IR ANCIÃO - R. Oscar de Souza, 65 - São Francisco",
-    "R. Ver. Adalto Antonio Gonçalves, 145 - São Francisco",
-    "R. Dr. Marcolino, 593, apto 101 - Centro"
+    "R. 11, 136 - Patos de Minas",
+    "R. Antônia Carrilho, 115 - Res. Barreiro",
+    "R. Clariza Araújo, 283 - Nossa Sra. de Fátima",
+    "R. Gerôncio Gonçalves, 46 - Nossa Sra. de Fátima",
+    "R. Lázaro Tadeu Pereira, 84 - Alvorada",
+    "IR ANCIÃO - R. Aracajú, 183 - Caramuru",
+    "R. Luzia Gonçalves de Souza, 82 - Nossa Sra. de Fátima",
+    "R. João C. de Castro, 16 - Nossa Sra. de Fátima"
   ],
   "Mapa 10": [
-    "R. José de Anchieta, 137 - Jardim América",
-    "R. Onofre Gonçalves, 27 - Jardim América",
-    "R. Anicésio Vieira, 404 - Rosário",
-    "Tv. Maria Inês de Jesus, 121 - Rosário",
-    "Tv. Antero Eduardo, 346 - Rosário",
-    "R. Zama Alves, 259 - Lagoinha",
-    "R. Padre Pavoni, 26 - Rosário",
-    "R. Antônio Bernardes, 47 - Nossa Sra. das Graças"
+    "R. Roberto de Assis Martins, 155 - Jardim Paulistano",
+    "R. do Sol, 220 - apto 32 - Jardim Andrades",
+    "R. Carmo do Paranaíba, 1418 - Vila Rosa",
+    "R. Ver. João Pacheco, 2801 - Cristo Redentor",
+    "R. Paraíba, 514 - Cristo Redentor"
   ],
   "Mapa 11": [
-    "Tv. Trinta, 39 - A Definir, Patos de Minas",
-    "Tv. Trinta, 33 - A Definir, Patos de Minas",
-    "R. Paraíba, 514 - Cristo Redentor",
-    "R. Cônego Getúlio, 1088 - Centro",
-    "R. Roberto de Assis Martins, 155 - Jardim Paulistano",
-    "R. Espírito Santo, 1245 - Várzea"
+    "Av. Joaquim Fubá, 226 - Nossa Sra. Aparecida",
+    "Tv. Hélio José da Silva, 50 - Nossa Sra. Aparecida",
+    "R. Duque de Caxias, 915 - Nossa Sra. Aparecida",
+    "R. Guilherme Vilela, 507 - Nossa Sra. Aparecida",
+    "R. Tito Silva, 521 - São José Operário",
+    "IR ANCIÃO - R. Guilherme Vilela, 400 - Nossa Sra. Aparecida",
+    "R. Ver. João Pacheco, 315 - Santo Antônio",
+    "R. Aristeu Pereira Cardoso, 26 - Várzea"
   ],
   "Mapa 12": [
-    "R. Pres. Olegário, 78 - Santa Terezinha",
-    "R. Aristeu Pereira Cardoso, 26 - Várzea",
-    "R. Ver. João Pacheco, 315 - Santo Antônio",
-    "R. Guilherme Vilela, 400 - Nossa Sra. Aparecida",
-    "R. Guilherme Vilela, 507 - Nossa Sra. Aparecida",
-    "R. Duque de Caxias, 915 - Nossa Sra. Aparecida",
-    "Tv. Hélio José da Silva, 50 - Nossa Sra. Aparecida",
-    "Av. Joaquim Fubá, 226 - Nossa Sra. Aparecida",
-    "Rua Tito Silva, 521 - São José Operária"
+    "R. Carmo do Paranaíba, 572- Vila Rosa",
+    "R. Betim, 25 - Santa Terezinha",
+    "R. Daniel Alves Beluco, 49 - Cristo Redentor",
+    "R. Espírito Santo, 1245 - Várzea",
+    "R. Cônego Getúlio, 1088 - Centro"
   ],
   "Mapa 13": [
-    "R. Betim, 25 - Santa Terezinha",
+    "R. Pres. Olegário, 78 - Santa Terezinha",
     "R. São Gonçalo, 25 - Santa Terezinha",
     "Av. da Vitória, 201 - Santa Terezinha",
     "R. Minas Gerais, 688 - Santa Terezinha",
-    "R. Espírito Santo, 557 - Várzea",
+    "R. Espírito Santo, 557 - Várzea"
+  ],
+  "Mapa 14": [
     "R. Dr. Marcolino, 593 - Centro",
-    "R. Presidente Olegário, 78 - Sta. Terezinha",
-    "R. Carmo do Paranaíba, 572 - Vila Rosa"
+    "R. Onofre Gonçalves, 27 - Jardim América",
+    "IR ANCIÃO - R. José de Anchieta, 137 - Jardim América",
+    "R. Alfredo Borges, 427 - Centro"
+  ],
+  "Mapa 15": [
+    "R. Antônio Bernardes, 47 - Nossa Sra. das Gracas",
+    "R. Xavantes, 167 - Caiçaras",
+    "R. Padre Pavoni, 26 - Rosário",
+    "R. Anicésio Vieira, 404 - Rosário",
+    "R. Zama Alves, 259 - Lagoinha",
+    "R. Zama Alves, 73 - Rosário",
+    "Tv. Maria Inês de Jesus, 121 - Rosário"
+  ],
+  "Mapa 16": [
+    "R. Antônio Severo, 77 - Laranjeiras",
+    "IR ANCIÃO - R. Três Pontas, 149 - Padre Eustaquio",
+    "R. Muriaé, 290 - Padre Eustaquio",
+    "R. Marta Eulália Ferreira, 230 - Cerrado",
+    "R. São Geraldo, 682 - Lagoinha"
+  ],
+  "Mapa 17": [
+    "R. José Miguel de Sousa, 115 - Padre Eustaquio",
+    "R. Corinto, 108 - Padre Eustaquio",
+    "R. dos Tupis, 530 - Caramuru",
+    "R. Zeca Filgueira, 509 - Nossa Sra. das Gracas",
+    "IR ANCIÃO - R. Tonho do Nico, 314 - Nossa Sra. das Gracas",
+    "R. Emídio de Souza, 375, Fundo - Nossa Sra. das Graças"
   ]
 };
 
