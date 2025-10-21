@@ -6,71 +6,165 @@
   <title>Painel LS MAPAS</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: "Montserrat", sans-serif; padding: 20px; background: #fafafa; }
-    h1 { text-align: center; color: #5c3d89; }
-    .grafico-container {width: 100%;max-width: 200px;   /* 🔹 Reduz o tamanho máximo */margin: 40px auto;}
-    canvas {width: 100% !important; height: auto !important;}
-    table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #5c3d89; color: white; }
+    body {
+      font-family: "Montserrat", sans-serif;
+      padding: 20px;
+      background-color: #fafafa;
+    }
+
+    h1 {
+      text-align: center;
+      color: #5c3d89;
+    }
+
+    .filtro {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+      margin-bottom: 30px;
+    }
+
+    select {
+      padding: 8px 12px;
+      border-radius: 5px;
+      border: 1px solid #5c3d89;
+      font-size: 14px;
+      background-color: white;
+    }
+
+    .grafico-container {
+      width: 100%;
+      max-width: 420px;
+      margin: 30px auto;
+      position: relative;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+      background: white;
+      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: #5c3d89;
+      color: white;
+    }
+
+    #status {
+      text-align: center;
+      color: #5c3d89;
+    }
   </style>
 </head>
 <body>
   <h1>Painel de Resultados LS MAPAS</h1>
+
+  <!-- 🔹 Seletor de filtro -->
+  <div class="filtro">
+    <label for="filtroMapa">Filtrar por mapa:</label>
+    <select id="filtroMapa">
+      <option value="todos">Todos</option>
+    </select>
+  </div>
+
   <p id="status">⏳ Carregando dados...</p>
-  <div class="grafico-container"><canvas id="grafico"></canvas></div>
+
+  <div class="grafico-container">
+    <canvas id="grafico"></canvas>
+  </div>
+
   <div id="tabela"></div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
+    let dadosGlobais = [];
+    let grafico;
 
     async function carregarDados() {
       try {
-        console.log("Buscando dados de:", API_URL);
         const res = await fetch(API_URL);
         if (!res.ok) throw new Error("Erro HTTP " + res.status);
         const dados = await res.json();
+        dadosGlobais = dados;
         console.log("Dados recebidos:", dados);
 
-        if (!Array.isArray(dados) || dados.length === 0) {
-          document.getElementById("status").textContent = "Nenhum dado encontrado.";
-          return;
-        }
-
         document.getElementById("status").style.display = "none";
+        preencherFiltro(dados);
+        atualizarPainel("todos");
 
-        const encontrados = dados.filter(d => d.Status === "Encontrado" || d.status === "Encontrado").length;
-        const naoEncontrados = dados.filter(d => d.Status === "Não encontrado" || d.status === "Não encontrado").length;
-
-        new Chart(document.getElementById("grafico"), {
-          type: "doughnut",
-          data: {
-            labels: ["Encontrado", "Não encontrado"],
-            datasets: [{
-              data: [encontrados, naoEncontrados],
-              backgroundColor: ["#4caf50", "#f44336"]
-            }]
-          },
-          options: { plugins: { legend: { position: "bottom" } } }
-        });
-
-        const linhas = dados.map(d => `
-          <tr>
-            <td>${d["Data e Hora"] || d.dataHora}</td>
-            <td>${d.Setor || d.setor}</td>
-            <td>${d.Endereço || d.endereco}</td>
-            <td>${d.Status || d.status}</td>
-          </tr>`).join("");
-
-        document.getElementById("tabela").innerHTML = `
-          <table>
-            <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
-            ${linhas}
-          </table>`;
       } catch (err) {
         console.error("Erro ao carregar:", err);
-        document.getElementById("status").textContent = "❌ Erro ao carregar dados. Verifique o console.";
+        document.getElementById("status").textContent = "❌ Erro ao carregar dados.";
       }
+    }
+
+    function preencherFiltro(dados) {
+      const filtro = document.getElementById("filtroMapa");
+      const mapas = [...new Set(dados.map(d => d.Setor || d.setor))].sort();
+      mapas.forEach(mapa => {
+        const opt = document.createElement("option");
+        opt.value = mapa;
+        opt.textContent = mapa;
+        filtro.appendChild(opt);
+      });
+      filtro.addEventListener("change", e => atualizarPainel(e.target.value));
+    }
+
+    function atualizarPainel(mapaSelecionado) {
+      let filtrados = dadosGlobais;
+
+      if (mapaSelecionado !== "todos") {
+        filtrados = dadosGlobais.filter(d => 
+          (d.Setor || d.setor) === mapaSelecionado
+        );
+      }
+
+      const encontrados = filtrados.filter(d => d.Status === "Encontrado" || d.status === "Encontrado").length;
+      const naoEncontrados = filtrados.filter(d => d.Status === "Não encontrado" || d.status === "Não encontrado").length;
+
+      // Atualiza ou cria gráfico
+      if (grafico) grafico.destroy();
+      grafico = new Chart(document.getElementById("grafico"), {
+        type: "doughnut",
+        data: {
+          labels: ["Encontrado", "Não encontrado"],
+          datasets: [{
+            data: [encontrados, naoEncontrados],
+            backgroundColor: ["#4caf50", "#f44336"]
+          }]
+        },
+        options: { plugins: { legend: { position: "bottom" } } }
+      });
+
+      const linhas = filtrados.map(d => `
+        <tr>
+          <td>${d["Data e Hora"] || d.dataHora}</td>
+          <td>${d.Setor || d.setor}</td>
+          <td>${d.Endereço || d.endereco}</td>
+          <td>${d.Status || d.status}</td>
+        </tr>`).join("");
+
+      document.getElementById("tabela").innerHTML = `
+        <table>
+          <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
+          ${linhas || "<tr><td colspan='4'>Nenhum registro encontrado.</td></tr>"}
+        </table>`;
     }
 
     carregarDados();
