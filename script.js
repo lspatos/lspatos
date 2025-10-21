@@ -1,5 +1,5 @@
 // URL DO PROXY NO CLOUDFLARE
-const proxyURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/api";
+const proxyURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
 
 // ENDEREÇOS DE CADA MAPA
 const mapas = {
