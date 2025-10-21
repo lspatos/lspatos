@@ -73,19 +73,30 @@
       background-color: white;
     }
 
-    .grafico-container {
-      width: 100%;
-      max-width: 420px;
-      margin: 30px auto;
-      position: relative;
+    .graficos-lado-a-lado {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 40px;
+      flex-wrap: wrap; /* volta a empilhar em telas pequenas */
+      margin-top: 40px;
+    }
+  
+    .grafico-container,
+    .grafico-barras {
+      flex: 1 1 400px; /* ocupa metade do espaço em telas largas */
+      max-width: 480px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
 
-    .grafico-barras {
-      width: 100%;
-      max-width: 600px;
-      margin: 50px auto;
-      position: relative;
+    canvas {
+      width: 100% !important;
+      height: auto !important;
     }
+
 
     table {
       width: 100%;
@@ -134,14 +145,15 @@
 
   <p id="status">⏳ Carregando dados...</p>
 
-  <!-- 🔹 Gráfico de pizza -->
-  <div class="grafico-container">
-    <canvas id="grafico"></canvas>
-  </div>
+    <!-- 🔹 Área dos gráficos (lado a lado) -->
+  <div class="graficos-lado-a-lado">
+    <div class="grafico-container">
+      <canvas id="grafico"></canvas>
+    </div>
 
-  <!-- 🔹 Gráfico de barras -->
-  <div class="grafico-barras">
-    <canvas id="graficoCiclos"></canvas>
+    <div class="grafico-barras">
+      <canvas id="graficoCiclos"></canvas>
+    </div>
   </div>
 
   <div id="tabela"></div>
