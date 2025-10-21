@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel LS MAPAS</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: "Montserrat", sans-serif;
+      padding: 20px;
+      background-color: #fafafa;
+    }
+    h1 {
+      text-align: center;
+      color: #5c3d89;
+    }
+    .grafico-container {
+      max-width: 600px;
+      margin: 40px auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+      background: white;
+      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      background-color: #5c3d89;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Painel de Resultados LS MAPAS</h1>
+
+  <div class="grafico-container">
+    <canvas id="grafico"></canvas>
+  </div>
+
+  <div id="tabela"></div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwd0P5RCJrbolrpE4s5vIME9_IVED_35sRU827sRVMFCye8COSiQu4h3gOOWyTDwhCLJw/exec";
+
+    async function carregarDados() {
+      const res = await fetch(API_URL);
+      const dados = await res.json();
+
+      // Contar status
+      const encontrados = dados.filter(d => d.status === "Encontrado").length;
+      const naoEncontrados = dados.filter(d => d.status === "Não encontrado").length;
+
+      // Gráfico de pizza
+      new Chart(document.getElementById("grafico"), {
+        type: "doughnut",
+        data: {
+          labels: ["Encontrado", "Não encontrado"],
+          datasets: [{
+            data: [encontrados, naoEncontrados],
+            backgroundColor: ["#4caf50", "#f44336"]
+          }]
+        },
+        options: { plugins: { legend: { position: "bottom" } } }
+      });
+
+      // Gerar tabela
+      const linhas = dados.map(d => `
+        <tr>
+          <td>${d.dataHora}</td>
+          <td>${d.setor}</td>
+          <td>${d.endereco}</td>
+          <td>${d.status}</td>
+        </tr>`).join("");
+
+      document.getElementById("tabela").innerHTML = `
+        <table>
+          <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
+          ${linhas}
+        </table>`;
+    }
+
+    carregarDados();
+  </script>
+</body>
+</html>
