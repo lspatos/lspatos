@@ -112,3 +112,14 @@ span{
 .info_rodape p {
     font-size: 11px;
 }
+
+.search-container {
+  margin: 10px 0 15px 0;
+}
+
+#searchInput {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
