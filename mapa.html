@@ -8,7 +8,9 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="fav_icon.ico" type="image/x-icon">
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
   <!-- CSS interno (mantido no estilo atual) -->
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
@@ -96,6 +98,12 @@
   <section class="aviso">
     <h3>*Atenção:</h3><br>
     <p>Após clicar, aguarde até que a mensagem "Resposta registrada com sucesso!" seja exibida. Agradecemos.</p>
+    <div class="cabecalho">
+    <p class="div_titulo_texto" id="titulo-mapa"></p>
+    <button onclick="exportarParaPDF()" id="btn-download" style="position: absolute; right: 20px; padding: 8px 12px; background-color: #f0f0f0; border: none; border-radius: 4px; cursor: pointer; color: #5c3d89; font-weight: bold;">
+        ⬇️ PDF
+    </button>
+</div>
   </section>
 
   <!-- Container dinâmico -->
