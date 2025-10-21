@@ -95,7 +95,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
     let dadosGlobais = [];
     let grafico;
-
+  
     async function carregarDados() {
       try {
         const res = await fetch(API_URL);
@@ -103,17 +103,18 @@
         const dados = await res.json();
         dadosGlobais = dados;
         console.log("Dados recebidos:", dados);
-
+  
         document.getElementById("status").style.display = "none";
         preencherFiltro(dados);
         atualizarPainel("todos");
-
+        calcularCiclo(dados);
+  
       } catch (err) {
         console.error("Erro ao carregar:", err);
         document.getElementById("status").textContent = "❌ Erro ao carregar dados.";
       }
     }
-
+  
     function preencherFiltro(dados) {
       const filtro = document.getElementById("filtroMapa");
       const mapas = [...new Set(dados.map(d => d.Setor || d.setor))].sort();
@@ -125,20 +126,16 @@
       });
       filtro.addEventListener("change", e => atualizarPainel(e.target.value));
     }
-
+  
     function atualizarPainel(mapaSelecionado) {
       let filtrados = dadosGlobais;
-
       if (mapaSelecionado !== "todos") {
-        filtrados = dadosGlobais.filter(d => 
-          (d.Setor || d.setor) === mapaSelecionado
-        );
+        filtrados = dadosGlobais.filter(d => (d.Setor || d.setor) === mapaSelecionado);
       }
-
+  
       const encontrados = filtrados.filter(d => d.Status === "Encontrado" || d.status === "Encontrado").length;
       const naoEncontrados = filtrados.filter(d => d.Status === "Não encontrado" || d.status === "Não encontrado").length;
-
-      // Atualiza ou cria gráfico
+  
       if (grafico) grafico.destroy();
       grafico = new Chart(document.getElementById("grafico"), {
         type: "doughnut",
@@ -151,7 +148,7 @@
         },
         options: { plugins: { legend: { position: "bottom" } } }
       });
-
+  
       const linhas = filtrados.map(d => `
         <tr>
           <td>${d["Data e Hora"] || d.dataHora}</td>
@@ -159,15 +156,63 @@
           <td>${d.Endereço || d.endereco}</td>
           <td>${d.Status || d.status}</td>
         </tr>`).join("");
-
+  
       document.getElementById("tabela").innerHTML = `
         <table>
           <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
           ${linhas || "<tr><td colspan='4'>Nenhum registro encontrado.</td></tr>"}
         </table>`;
     }
-
+  
+    // 🔹 NOVA FUNÇÃO: cálculo de tempo de cobertura
+    function calcularCiclo(dados) {
+      // Normaliza os dados (pega setor e data)
+      const registros = dados.map(d => ({
+        setor: d.Setor || d.setor,
+        data: new Date(d["Data e Hora"] || d.dataHora)
+      })).sort((a, b) => a.data - b.data);
+  
+      const todosMapas = [...new Set(registros.map(r => r.setor))];
+      const totalMapas = todosMapas.length;
+      let visitados = new Set();
+      let inicioCiclo = registros[0]?.data;
+      let ciclos = [];
+  
+      for (let r of registros) {
+        visitados.add(r.setor);
+        if (visitados.size === totalMapas) {
+          const fim = r.data;
+          const duracaoDias = Math.round((fim - inicioCiclo) / (1000 * 60 * 60 * 24));
+          ciclos.push({ inicio: inicioCiclo, fim, duracaoDias });
+          // Reinicia contagem para o próximo ciclo
+          visitados = new Set();
+          inicioCiclo = r.data;
+        }
+      }
+  
+      const divResumo = document.createElement("div");
+      divResumo.style.textAlign = "center";
+      divResumo.style.marginTop = "20px";
+      divResumo.style.color = "#333";
+  
+      if (ciclos.length > 0) {
+        const ultimo = ciclos[ciclos.length - 1];
+        divResumo.innerHTML = `
+          <h3>🕒 Último ciclo completo</h3>
+          <p>${ultimo.duracaoDias} dias entre 
+          ${ultimo.inicio.toLocaleDateString("pt-BR")} e 
+          ${ultimo.fim.toLocaleDateString("pt-BR")}</p>`;
+      } else {
+        const faltando = totalMapas - visitados.size;
+        divResumo.innerHTML = `
+          <h3>⏳ Ciclo atual ainda em andamento</h3>
+          <p>Faltam ${faltando} mapas para completar (${totalMapas} no total).</p>`;
+      }
+  
+      document.body.insertBefore(divResumo, document.querySelector(".grafico-container"));
+    }
+  
     carregarDados();
-  </script>
+  </script>  
 </body>
 </html>
