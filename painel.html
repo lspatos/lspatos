@@ -58,11 +58,11 @@
       to { opacity: 0.4; }
     }
 
-    /* Gráficos lado a lado */
+    /* 🔹 Gráficos lado a lado — mesmo tamanho, sem distorção */
     .graficos-lado-a-lado {
       display: flex;
       justify-content: center;
-      align-items: stretch;
+      align-items: flex-start;
       gap: 40px;
       flex-wrap: wrap;
       margin-top: 40px;
@@ -70,12 +70,12 @@
     
     .grafico-container,
     .grafico-barras {
-      flex: 1 1 450px;
-      max-width: 450px;
-      height: 450px; /* 🔹 mesma altura */
+      flex: 1 1 420px;
+      max-width: 420px;
+      aspect-ratio: 1 / 1; /* 🔹 Mantém proporção quadrada */
       background: #fff;
-      border-radius: 10px;
-      padding: 25px;
+      border-radius: 12px;
+      padding: 20px;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
       display: flex;
       justify-content: center;
@@ -84,7 +84,8 @@
     
     canvas {
       width: 100% !important;
-      height: 100% !important; /* 🔹 garante proporção igual */
+      height: 100% !important;
+      object-fit: contain; /* 🔹 Evita esticar */
     }
 
     .filtro {
