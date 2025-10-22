@@ -12,51 +12,22 @@
       font-family: "Montserrat", sans-serif;
       background: #fafafa;
       color: #333;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #5c3d89;
-      margin-bottom: 30px;
-    }
-    .pagina {
-      width: 297mm;           /* A4 landscape width */
-      height: 210mm;          /* A4 landscape height */
-      background: white;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 10px;
-      box-sizing: border-box;
-      padding: 15px;
-      margin: 0 auto 30px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    }
-    .mapa-bloco {
-      border: 2px solid #5c3d89;
-      border-radius: 8px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      overflow: hidden;
-    }
-    .mapa-bloco h2 {
-      font-size: 18px;
-      color: #5c3d89;
-      border-bottom: 1px solid #ccc;
-      margin-bottom: 8px;
-    }
-    .mapa-bloco ul {
-      list-style: none;
       padding: 0;
       margin: 0;
-      font-size: 12px;
-      line-height: 1.4;
+      overflow-y: auto; /* scroll habilitado */
     }
+
+    h1 {
+      text-align: center;
+      color: #fff;
+      background-color: #5c3d89;
+      padding: 20px;
+      margin: 0 0 20px 0;
+    }
+
     .btn-gerar {
       display: block;
-      margin: 0 auto 40px;
+      margin: 20px auto;
       padding: 10px 25px;
       background-color: #5c3d89;
       color: white;
@@ -66,6 +37,54 @@
       font-size: 16px;
     }
     .btn-gerar:hover { opacity: 0.9; }
+
+    .pagina {
+      width: 297mm;
+      min-height: 210mm;
+      background: white;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 15px;
+      box-sizing: border-box;
+      padding: 20px;
+      margin: 0 auto 40px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    .mapa-bloco {
+      background: #f5f5f5;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+    }
+
+    .mapa-titulo {
+      background-color: #5c3d89;
+      color: white;
+      padding: 8px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .endereco-item {
+      background-color: #e8e6e6;
+      border-radius: 8px;
+      padding: 6px 10px;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .endereco-item.anciao {
+      background-color: #ffcccc;
+      border-left: 6px solid #c62828;
+      color: #6b0000;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -89,17 +108,18 @@
           const bloco = document.createElement("div");
           bloco.className = "mapa-bloco";
 
-          const titulo = document.createElement("h2");
+          const titulo = document.createElement("div");
+          titulo.className = "mapa-titulo";
           titulo.textContent = nomeMapa;
           bloco.appendChild(titulo);
 
-          const lista = document.createElement("ul");
-          mapas[nomeMapa].forEach(endereco => {
-            const li = document.createElement("li");
-            li.textContent = endereco;
-            lista.appendChild(li);
+          mapas[nomeMapa].forEach((endereco, idx) => {
+            const divEnd = document.createElement("div");
+            divEnd.className = "endereco-item";
+            if (/ir\s*anci[ãa]o/i.test(endereco)) divEnd.classList.add("anciao");
+            divEnd.textContent = `${idx + 1}. ${endereco}`;
+            bloco.appendChild(divEnd);
           });
-          bloco.appendChild(lista);
 
           pagina.appendChild(bloco);
         }
