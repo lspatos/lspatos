@@ -72,20 +72,29 @@
   const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
 
   async function carregar() {
-    const res = await fetch(API_URL + "?tabela=mapas");
-    const dados = await res.json();
+    const res = await fetch(API_URL + "?tabela=mapas", { cache: "no-store" });
+    const texto = await res.text();
+    console.log("Resposta do Apps Script:", texto);
+    let dados = [];
+    try {
+      dados = JSON.parse(texto);
+    } catch (e) {
+      console.error("Erro ao interpretar JSON:", texto);
+      return;
+    }
+
     const corpo = document.querySelector("#tabela tbody");
     corpo.innerHTML = "";
     dados.forEach(d => {
       corpo.innerHTML += `
         <tr>
-          <td>${d.ID}</td>
-          <td>${d.Mapa}</td>
-          <td>${d.Endereço}</td>
-          <td>${d.Restrição || ""}</td>
+          <td>${d.ID || d.id || ""}</td>
+          <td>${d.Mapa || d.mapa || ""}</td>
+          <td>${d.Endereco || d.endereco || ""}</td>
+          <td>${d.Restricao || d.restricao || ""}</td>
           <td>
             <button onclick='editar(${JSON.stringify(d)})'>✏️</button>
-            <button onclick='excluir("${d.ID}")'>🗑️</button>
+            <button onclick='excluir("${d.ID || d.id || ""}")'>🗑️</button>
           </td>
         </tr>`;
     });
@@ -112,10 +121,10 @@
   }
 
   function editar(d) {
-    document.getElementById("editId").value = d.ID;
-    document.getElementById("mapa").value = d.Mapa;
-    document.getElementById("endereco").value = d.Endereço;
-    document.getElementById("restricao").value = d.Restrição || "";
+    document.getElementById("editId").value = d.ID || d.id || "";
+    document.getElementById("mapa").value = d.Mapa || d.mapa || "";
+    document.getElementById("endereco").value = d.Endereco || d.endereco || "";
+    document.getElementById("restricao").value = d.Restricao || d.restricao || "";
   }
 
   function limpar() {
