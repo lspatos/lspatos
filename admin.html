@@ -51,66 +51,94 @@
     </table>
   </div>
 
-  <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbzw6ti526A6UDVZHed1psnVb2lTIks5_DvkClhbFlHnKIL9iILAu7rTg1dRtq_QSP9i_g/exec";
-    async function carregarMapas() {
-      const res = await fetch(`${scriptURL}?tabela=mapas`);
-      const dados = await res.json();
-      const tabela = document.getElementById("tabelaMapas");
-      tabela.innerHTML = "";
-
-      dados.forEach((linha) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${linha.ID || ""}</td>
-          <td>${linha.Mapa || ""}</td>
-          <td>${linha.Endereço || ""}</td>
-          <td>${linha.Restriçao || linha.Restrições || ""}</td>
-          <td>
-            <button class="btn btn-sm btn-custom" onclick="editar('${linha.ID}', '${linha.Mapa}', '${linha.Endereço}', '${linha.Restriçao || ''}')">✏️</button>
-            <button class="btn btn-sm btn-secondary" onclick="excluir('${linha.ID}')">🗑️</button>
-          </td>`;
-        tabela.appendChild(tr);
-      });
-    }
-
-    async function salvarOuAtualizar() {
-      const id = document.getElementById("id").value.trim();
-      const mapa = document.getElementById("mapa").value.trim();
-      const endereco = document.getElementById("endereco").value.trim();
-      const restricao = document.getElementById("restricao").value.trim();
-
-      if (!mapa || !endereco) {
-        alert("Preencha os campos obrigatórios: Mapa e Endereço.");
+<script>
+  const scriptURL = "https://script.google.com/macros/s/AKfycbzJfHbtwyeUEzDnEfFGeSMTARv1_QQbcCYEwPMMmdYiGmtLT0zCci72E_3MyvBA1Pn8uA/exec";
+  
+  // === Carregar Mapas ===
+  async function carregarMapas() {
+    try {
+      const response = await fetch(`${scriptURL}?tabela=mapas`);
+      const dados = await response.json();
+  
+      // Se for erro, exibe no console e para
+      if (dados.erro) {
+        console.error("Erro do servidor:", dados.erro);
+        alert("Erro ao carregar os dados. Veja o console para detalhes.");
         return;
       }
-
-      await fetch(scriptURL, {
-        method: "POST",
-        body: JSON.stringify({ tabela: "mapas", id, mapa, endereco, restricao }),
+  
+      const tbody = document.querySelector("tbody");
+      tbody.innerHTML = "";
+  
+      dados.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.ID || ""}</td>
+          <td>${item.Mapa || ""}</td>
+          <td>${item.Endereco || ""}</td>
+          <td>${item.Restricao || ""}</td>
+          <td>
+            <button onclick="editar('${item.ID}', '${item.Mapa}', '${item.Endereco}', '${item.Restricao}')">✏️</button>
+            <button onclick="excluir('${item.ID}')">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
-
-      limparCampos();
+  
+    } catch (err) {
+      console.error("Erro em carregarMapas:", err);
+      alert("Erro ao conectar ao servidor.");
+    }
+  }
+  
+  
+  // === Salvar / Atualizar ===
+  async function salvar() {
+    const mapa = document.querySelector("#mapa").value;
+    const endereco = document.querySelector("#endereco").value;
+    const restricao = document.querySelector("#restricao").value;
+    const id = document.querySelector("#id").value || "";
+  
+    if (!mapa || !endereco) {
+      alert("Preencha pelo menos Mapa e Endereço.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify({ mapa, endereco, restricao, id })
+      });
+  
+      const result = await response.json();
+      console.log(result);
+  
+      if (result.erro) alert("Erro: " + result.erro);
+      else alert(result.status || "Salvo com sucesso");
+  
       carregarMapas();
+  
+    } catch (err) {
+      console.error("Erro no salvar:", err);
+      alert("Falha ao enviar os dados.");
     }
-
-    function editar(id, mapa, endereco, restricao) {
-      document.getElementById("id").value = id;
-      document.getElementById("mapa").value = mapa;
-      document.getElementById("endereco").value = endereco;
-      document.getElementById("restricao").value = restricao;
-    }
-
-    function limparCampos() {
-      document.getElementById("id").value = "";
-      document.getElementById("mapa").value = "";
-      document.getElementById("endereco").value = "";
-      document.getElementById("restricao").value = "";
-    }
-
-    document.getElementById("salvarBtn").addEventListener("click", salvarOuAtualizar);
-    document.getElementById("limparBtn").addEventListener("click", limparCampos);
-    window.onload = carregarMapas;
-  </script>
+  }
+  
+  function limpar() {
+    document.querySelector("#mapa").value = "";
+    document.querySelector("#endereco").value = "";
+    document.querySelector("#restricao").value = "";
+    document.querySelector("#id").value = "";
+  }
+  
+  function editar(id, mapa, endereco, restricao) {
+    document.querySelector("#id").value = id;
+    document.querySelector("#mapa").value = mapa;
+    document.querySelector("#endereco").value = endereco;
+    document.querySelector("#restricao").value = restricao;
+  }
+  
+  window.onload = carregarMapas;
+</script>
 </body>
 </html>
