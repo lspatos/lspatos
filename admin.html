@@ -1,140 +1,116 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel Administrativo LS MAPAS</title>
-<style>
-  body { font-family: "Montserrat", sans-serif; background: #fafafa; padding: 20px; margin: 0; }
-  h1 { color: #5c3d89; text-align: center; }
-  .form-container {
-    background: #fff;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  }
-  input, select, button {
-    margin: 5px;
-    padding: 6px;
-    font-size: 14px;
-  }
-  button {
-    background-color: #5c3d89;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  button:hover { opacity: 0.9; }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    background: white;
-  }
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    font-size: 13px;
-  }
-  th {
-    background: #5c3d89;
-    color: white;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Administrativo — LS PATOS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f5f4f8; font-family: Arial, sans-serif; }
+    h1 { color: #5a2d82; font-weight: 700; text-align: center; margin: 40px 0 20px; }
+    table { background: #fff; border-radius: 6px; overflow: hidden; }
+    th { background-color: #5a2d82; color: white; text-align: center; }
+    td, th { padding: 10px; text-align: center; }
+    .btn-custom { background-color: #5a2d82; color: white; border: none; }
+    .btn-custom:hover { background-color: #452160; }
+  </style>
 </head>
 <body>
-<h1>Painel Administrativo — LS PATOS</h1>
+  <div class="container mt-4">
+    <h1>Painel Administrativo — LS PATOS</h1>
+    <div class="card p-3 mb-4">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input type="text" id="mapa" class="form-control" placeholder="Mapa (ex: Mapa 01)">
+        </div>
+        <div class="col-md-4">
+          <input type="text" id="endereco" class="form-control" placeholder="Endereço completo">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="restricao" class="form-control" placeholder="Restrição (opcional)">
+        </div>
+        <div class="col-md-2 d-flex">
+          <button id="salvarBtn" class="btn btn-custom flex-fill me-2">Salvar / Atualizar</button>
+          <button id="limparBtn" class="btn btn-secondary flex-fill">Limpar</button>
+        </div>
+      </div>
+      <input type="hidden" id="id">
+    </div>
 
-<div class="form-container">
-  <input type="hidden" id="editId">
-  <input type="text" id="mapa" placeholder="Mapa (ex: Mapa 01)">
-  <input type="text" id="endereco" placeholder="Endereço completo">
-  <input type="text" id="restricao" placeholder="Restrição (opcional)">
-  <button onclick="salvar()">Salvar / Atualizar</button>
-  <button onclick="limpar()">Limpar</button>
-</div>
+    <table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Mapa</th>
+          <th>Endereço</th>
+          <th>Restrição</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaMapas"></tbody>
+    </table>
+  </div>
 
-<table id="tabela">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Mapa</th>
-      <th>Endereço</th>
-      <th>Restrição</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycby5YAjnj43MvGwU6TDYRzCBJAsHAeQ5HqmiI0nFc5Ws_iwroAePvSYrl5ysQWXbPYSDqA/exec";
+    async function carregarMapas() {
+      const res = await fetch(`${scriptURL}?tabela=mapas`);
+      const dados = await res.json();
+      const tabela = document.getElementById("tabelaMapas");
+      tabela.innerHTML = "";
 
-<script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbwoLItsP-Qk6FCrbgWjTB8Klky7GCdsXaCVH3ZEt1rxU3qxgsrl1Cf4ctHXns15dTiw/exec";
-
-  async function carregar() {
-    const res = await fetch(API_URL + "?tabela=mapas", { cache: "no-store" });
-    const texto = await res.text();
-    console.log("Resposta do Apps Script:", texto);
-    let dados = [];
-    try {
-      dados = JSON.parse(texto);
-    } catch (e) {
-      console.error("Erro ao interpretar JSON:", texto);
-      return;
+      dados.forEach((linha) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${linha.ID || ""}</td>
+          <td>${linha.Mapa || ""}</td>
+          <td>${linha.Endereço || ""}</td>
+          <td>${linha.Restriçao || linha.Restrições || ""}</td>
+          <td>
+            <button class="btn btn-sm btn-custom" onclick="editar('${linha.ID}', '${linha.Mapa}', '${linha.Endereço}', '${linha.Restriçao || ''}')">✏️</button>
+            <button class="btn btn-sm btn-secondary" onclick="excluir('${linha.ID}')">🗑️</button>
+          </td>`;
+        tabela.appendChild(tr);
+      });
     }
 
-    const corpo = document.querySelector("#tabela tbody");
-    corpo.innerHTML = "";
-    dados.forEach(d => {
-      corpo.innerHTML += `
-        <tr>
-          <td>${d.ID || d.id || ""}</td>
-          <td>${d.Mapa || d.mapa || ""}</td>
-          <td>${d.Endereco || d.endereco || ""}</td>
-          <td>${d.Restricao || d.restricao || ""}</td>
-          <td>
-            <button onclick='editar(${JSON.stringify(d)})'>✏️</button>
-            <button onclick='excluir("${d.ID || d.id || ""}")'>🗑️</button>
-          </td>
-        </tr>`;
-    });
-  }
+    async function salvarOuAtualizar() {
+      const id = document.getElementById("id").value.trim();
+      const mapa = document.getElementById("mapa").value.trim();
+      const endereco = document.getElementById("endereco").value.trim();
+      const restricao = document.getElementById("restricao").value.trim();
 
-  async function salvar() {
-    const id = document.getElementById("editId").value;
-    const body = {
-      id: id || new Date().getTime(),
-      mapa: document.getElementById("mapa").value.trim(),
-      endereco: document.getElementById("endereco").value.trim(),
-      restricao: document.getElementById("restricao").value.trim()
-    };
-    const method = id ? "PUT" : "POST";
-    await fetch(API_URL, { method, body: JSON.stringify(body) });
-    limpar();
-    carregar();
-  }
+      if (!mapa || !endereco) {
+        alert("Preencha os campos obrigatórios: Mapa e Endereço.");
+        return;
+      }
 
-  async function excluir(id) {
-    if (!confirm("Excluir este registro?")) return;
-    await fetch(`${API_URL}?id=${id}`, { method: "DELETE" });
-    carregar();
-  }
+      await fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify({ tabela: "mapas", id, mapa, endereco, restricao }),
+      });
 
-  function editar(d) {
-    document.getElementById("editId").value = d.ID || d.id || "";
-    document.getElementById("mapa").value = d.Mapa || d.mapa || "";
-    document.getElementById("endereco").value = d.Endereco || d.endereco || "";
-    document.getElementById("restricao").value = d.Restricao || d.restricao || "";
-  }
+      limparCampos();
+      carregarMapas();
+    }
 
-  function limpar() {
-    document.getElementById("editId").value = "";
-    document.getElementById("mapa").value = "";
-    document.getElementById("endereco").value = "";
-    document.getElementById("restricao").value = "";
-  }
+    function editar(id, mapa, endereco, restricao) {
+      document.getElementById("id").value = id;
+      document.getElementById("mapa").value = mapa;
+      document.getElementById("endereco").value = endereco;
+      document.getElementById("restricao").value = restricao;
+    }
 
-  carregar();
-</script>
+    function limparCampos() {
+      document.getElementById("id").value = "";
+      document.getElementById("mapa").value = "";
+      document.getElementById("endereco").value = "";
+      document.getElementById("restricao").value = "";
+    }
+
+    document.getElementById("salvarBtn").addEventListener("click", salvarOuAtualizar);
+    document.getElementById("limparBtn").addEventListener("click", limparCampos);
+    window.onload = carregarMapas;
+  </script>
 </body>
 </html>
