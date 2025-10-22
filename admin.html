@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Administrativo LS MAPAS</title>
+<style>
+  body { font-family: "Montserrat", sans-serif; background: #fafafa; padding: 20px; margin: 0; }
+  h1 { color: #5c3d89; text-align: center; }
+  .form-container {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  input, select, button {
+    margin: 5px;
+    padding: 6px;
+    font-size: 14px;
+  }
+  button {
+    background-color: #5c3d89;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  button:hover { opacity: 0.9; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    background: white;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    font-size: 13px;
+  }
+  th {
+    background: #5c3d89;
+    color: white;
+  }
+</style>
+</head>
+<body>
+<h1>Painel Administrativo — LS PATOS</h1>
+
+<div class="form-container">
+  <input type="hidden" id="editId">
+  <input type="text" id="mapa" placeholder="Mapa (ex: Mapa 01)">
+  <input type="text" id="endereco" placeholder="Endereço completo">
+  <input type="text" id="restricao" placeholder="Restrição (opcional)">
+  <button onclick="salvar()">Salvar / Atualizar</button>
+  <button onclick="limpar()">Limpar</button>
+</div>
+
+<table id="tabela">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Mapa</th>
+      <th>Endereço</th>
+      <th>Restrição</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
+
+  async function carregar() {
+    const res = await fetch(API_URL + "?tabela=mapas");
+    const dados = await res.json();
+    const corpo = document.querySelector("#tabela tbody");
+    corpo.innerHTML = "";
+    dados.forEach(d => {
+      corpo.innerHTML += `
+        <tr>
+          <td>${d.ID}</td>
+          <td>${d.Mapa}</td>
+          <td>${d.Endereço}</td>
+          <td>${d.Restrição || ""}</td>
+          <td>
+            <button onclick='editar(${JSON.stringify(d)})'>✏️</button>
+            <button onclick='excluir("${d.ID}")'>🗑️</button>
+          </td>
+        </tr>`;
+    });
+  }
+
+  async function salvar() {
+    const id = document.getElementById("editId").value;
+    const body = {
+      id: id || new Date().getTime(),
+      mapa: document.getElementById("mapa").value.trim(),
+      endereco: document.getElementById("endereco").value.trim(),
+      restricao: document.getElementById("restricao").value.trim()
+    };
+    const method = id ? "PUT" : "POST";
+    await fetch(API_URL, { method, body: JSON.stringify(body) });
+    limpar();
+    carregar();
+  }
+
+  async function excluir(id) {
+    if (!confirm("Excluir este registro?")) return;
+    await fetch(`${API_URL}?id=${id}`, { method: "DELETE" });
+    carregar();
+  }
+
+  function editar(d) {
+    document.getElementById("editId").value = d.ID;
+    document.getElementById("mapa").value = d.Mapa;
+    document.getElementById("endereco").value = d.Endereço;
+    document.getElementById("restricao").value = d.Restrição || "";
+  }
+
+  function limpar() {
+    document.getElementById("editId").value = "";
+    document.getElementById("mapa").value = "";
+    document.getElementById("endereco").value = "";
+    document.getElementById("restricao").value = "";
+  }
+
+  carregar();
+</script>
+</body>
+</html>
