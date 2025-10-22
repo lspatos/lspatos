@@ -74,32 +74,33 @@
   const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
 
   async function carregar() {
-    const res = await fetch(API_URL + "?tabela=mapas", { cache: "no-store" });
-    const texto = await res.text();
-    let dados = [];
-    try {
-      dados = JSON.parse(texto);
-    } catch (e) {
-      console.error("Erro ao interpretar JSON:", texto);
-      return;
-    }
-  
-    const corpo = document.querySelector("#tabela tbody");
-    corpo.innerHTML = "";
-    dados.forEach(d => {
-      corpo.innerHTML += `
-        <tr>
-          <td>${d.ID || ""}</td>
-          <td>${d.Mapa || ""}</td>
-          <td>${d.Endereco || ""}</td>
-          <td>${d.Restricao || ""}</td>
-          <td>
-            <button onclick='editar(${JSON.stringify(d)})'>✏️</button>
-            <button onclick='excluir("${d.ID}")'>🗑️</button>
-          </td>
-        </tr>`;
-    });
+  const res = await fetch(API_URL + "?tabela=mapas", { cache: "no-store" });
+  const texto = await res.text();
+  console.log("Resposta do Apps Script:", texto); // <-- Adicione isto
+  let dados = [];
+  try {
+    dados = JSON.parse(texto);
+  } catch (e) {
+    console.error("Erro ao interpretar JSON:", e);
+    return;
   }
+
+  const corpo = document.querySelector("#tabela tbody");
+  corpo.innerHTML = "";
+  dados.forEach(d => {
+    corpo.innerHTML += `
+      <tr>
+        <td>${d.ID || ""}</td>
+        <td>${d.Mapa || ""}</td>
+        <td>${d.Endereco || ""}</td>
+        <td>${d.Restricao || ""}</td>
+        <td>
+          <button onclick='editar(${JSON.stringify(d)})'>✏️</button>
+          <button onclick='excluir("${d.ID}")'>🗑️</button>
+        </td>
+      </tr>`;
+  });
+}
 
   async function salvar() {
     const id = document.getElementById("editId").value;
