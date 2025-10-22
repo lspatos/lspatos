@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#5c3d89" />
-  <link rel="icon" href="fav_icon.ico" type="image/x-icon">  
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel Administrativo LS MAPAS</title>
 <style>
   body { font-family: "Montserrat", sans-serif; background: #fafafa; padding: 20px; margin: 0; }
@@ -74,33 +72,24 @@
   const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
 
   async function carregar() {
-  const res = await fetch(API_URL + "?tabela=mapas", { cache: "no-store" });
-  const texto = await res.text();
-  console.log("Resposta do Apps Script:", texto); // <-- Adicione isto
-  let dados = [];
-  try {
-    dados = JSON.parse(texto);
-  } catch (e) {
-    console.error("Erro ao interpretar JSON:", e);
-    return;
+    const res = await fetch(API_URL + "?tabela=mapas");
+    const dados = await res.json();
+    const corpo = document.querySelector("#tabela tbody");
+    corpo.innerHTML = "";
+    dados.forEach(d => {
+      corpo.innerHTML += `
+        <tr>
+          <td>${d.ID}</td>
+          <td>${d.Mapa}</td>
+          <td>${d.Endereço}</td>
+          <td>${d.Restrição || ""}</td>
+          <td>
+            <button onclick='editar(${JSON.stringify(d)})'>✏️</button>
+            <button onclick='excluir("${d.ID}")'>🗑️</button>
+          </td>
+        </tr>`;
+    });
   }
-
-  const corpo = document.querySelector("#tabela tbody");
-  corpo.innerHTML = "";
-  dados.forEach(d => {
-    corpo.innerHTML += `
-      <tr>
-        <td>${d.ID || ""}</td>
-        <td>${d.Mapa || ""}</td>
-        <td>${d.Endereco || ""}</td>
-        <td>${d.Restricao || ""}</td>
-        <td>
-          <button onclick='editar(${JSON.stringify(d)})'>✏️</button>
-          <button onclick='excluir("${d.ID}")'>🗑️</button>
-        </td>
-      </tr>`;
-  });
-}
 
   async function salvar() {
     const id = document.getElementById("editId").value;
@@ -125,8 +114,8 @@
   function editar(d) {
     document.getElementById("editId").value = d.ID;
     document.getElementById("mapa").value = d.Mapa;
-    document.getElementById("endereco").value = d.Endereco;
-    document.getElementById("restricao").value = d.Restricao || "";
+    document.getElementById("endereco").value = d.Endereço;
+    document.getElementById("restricao").value = d.Restrição || "";
   }
 
   function limpar() {
