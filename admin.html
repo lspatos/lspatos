@@ -79,10 +79,10 @@
     dados.forEach(d => {
       corpo.innerHTML += `
         <tr>
-          <td>${d.ID}</td>
-          <td>${d.Mapa}</td>
-          <td>${d.Endereço}</td>
-          <td>${d.Restrição || ""}</td>
+          <td>${d.ID || ""}</td>
+          <td>${d.Mapa || ""}</td>
+          <td>${d.Endereco || ""}</td>
+          <td>${d.Restricao || ""}</td>
           <td>
             <button onclick='editar(${JSON.stringify(d)})'>✏️</button>
             <button onclick='excluir("${d.ID}")'>🗑️</button>
@@ -114,8 +114,8 @@
   function editar(d) {
     document.getElementById("editId").value = d.ID;
     document.getElementById("mapa").value = d.Mapa;
-    document.getElementById("endereco").value = d.Endereço;
-    document.getElementById("restricao").value = d.Restrição || "";
+    document.getElementById("endereco").value = d.Endereco;
+    document.getElementById("restricao").value = d.Restricao || "";
   }
 
   function limpar() {
