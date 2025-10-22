@@ -74,8 +74,16 @@
   const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
 
   async function carregar() {
-    const res = await fetch(API_URL + "?tabela=mapas");
-    const dados = await res.json();
+    const res = await fetch(API_URL + "?tabela=mapas", { cache: "no-store" });
+    const texto = await res.text();
+    let dados = [];
+    try {
+      dados = JSON.parse(texto);
+    } catch (e) {
+      console.error("Erro ao interpretar JSON:", texto);
+      return;
+    }
+  
     const corpo = document.querySelector("#tabela tbody");
     corpo.innerHTML = "";
     dados.forEach(d => {
