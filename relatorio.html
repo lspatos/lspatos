@@ -4,65 +4,103 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#5c3d89" />
-  <link rel="icon" href="fav_icon.ico" type="image/x-icon">  
+  <link rel="icon" href="fav_icon.ico" type="image/x-icon">
   <title>Relatório LS MAPAS</title>
   <style>
-    @page { size: A4 landscape; margin: 10mm; }
+    @page {
+      size: A4 landscape;
+      margin: 10mm;
+    }
 
-    body {
+    html, body {
       font-family: "Montserrat", sans-serif;
-      background: #fafafa;
+      background: #f8f7fb;
       color: #333;
-      padding: 10px;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* --- Cabeçalho --- */
+    h1 {
+      text-align: center;
+      color: #5a2d82;
+      font-weight: 700;
+      margin: 20px 0 10px;
+      font-size: 26px;
     }
 
     .top-bar {
+      position: sticky;
+      top: 0;
       display: flex;
-      justify-content: flex-end;
-      margin-bottom: 15px;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+      background: #fff;
+      border-bottom: 2px solid #e0dce9;
+      z-index: 100;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
 
     .btn-custom {
       background-color: #5a2d82;
       color: white;
       border: none;
-      padding: 8px 14px;
+      padding: 8px 16px;
       border-radius: 6px;
       font-weight: 500;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
-    .btn-custom:hover { background-color: #452160; }
 
-    .grid {
+    .btn-custom:hover {
+      background-color: #452160;
+    }
+
+    /* --- Layout responsivo --- */
+    .relatorio {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-gap: 15px;
-      page-break-inside: avoid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 15px;
+      max-width: 1100px;
+      margin: 0 auto;
     }
 
+    @media (min-width: 900px) {
+      .relatorio {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* --- Cartões de mapas --- */
     .mapa-card {
       background: white;
       border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
-      height: 100%;
-      padding: 0;
-      page-break-inside: avoid;
+      overflow: hidden;
+      transition: transform 0.2s ease;
+    }
+
+    .mapa-card:hover {
+      transform: scale(1.01);
     }
 
     .mapa-header {
-      background: #5a2d82;
+      background: linear-gradient(135deg, #5a2d82, #7443a8);
       color: white;
       text-align: center;
       font-weight: 600;
       font-size: 16px;
       padding: 6px 0;
-      border-radius: 8px 8px 0 0;
     }
 
     .mapa-body {
-      padding: 10px 14px;
+      padding: 12px 16px;
     }
 
     .mapa-body ol {
@@ -73,37 +111,59 @@
     }
 
     .mapa-body li {
-      margin: 3px 0;
-      padding: 3px 5px;
+      margin: 4px 0;
+      padding: 2px 5px;
       border-radius: 4px;
+      line-height: 1.4em;
     }
 
     .restrito {
-      background: #ffe5e5;
+      background: #ffeaea;
       color: #b71c1c;
       font-weight: 600;
     }
 
+    /* --- Layout fixo para impressão --- */
     @media print {
-      .top-bar { display: none !important; }
-      body { background: white; }
-      .mapa-card { box-shadow: none; }
+      h1, .top-bar { display: none !important; }
+      body {
+        background: white;
+        margin: 0;
+      }
+
+      .relatorio {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 10mm;
+        width: 277mm;
+        height: 190mm;
+        margin: 0 auto;
+        page-break-after: always;
+      }
+
+      .mapa-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+      }
     }
   </style>
 </head>
 <body>
+  <h1>Relatório LS MAPAS</h1>
+
   <div class="top-bar">
     <button class="btn-custom" onclick="voltar()">⬅ Voltar ao Admin</button>
+    <button class="btn-custom" onclick="window.print()">📄 Gerar PDF</button>
   </div>
 
-  <div id="relatorioContainer"></div>
+  <div id="relatorioContainer" class="relatorio"></div>
 
   <script>
     const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
     const token = new URLSearchParams(location.search).get("token");
 
     if (!token) {
-      document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;'>Acesso negado. Faça login pelo admin.</h3>";
+      document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;margin-top:50px;'>Acesso negado. Faça login pelo admin.</h3>";
       throw new Error("Token ausente");
     }
 
@@ -120,11 +180,10 @@
           return;
         }
 
-        const registros = dados.registros || [];
-        gerarRelatorio(registros);
+        gerarRelatorio(dados.registros || []);
       } catch (err) {
         console.error("Erro ao carregar mapas:", err);
-        document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;'>Erro ao carregar mapas.</h3>";
+        document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;margin-top:50px;'>Erro ao carregar mapas.</h3>";
       }
     }
 
@@ -135,22 +194,9 @@
       const grupos = agruparPorMapa(dados);
       const mapas = Object.keys(grupos).sort();
 
-      let pagina = document.createElement("div");
-      pagina.className = "grid";
-      container.appendChild(pagina);
-
-      let count = 0;
-
       mapas.forEach(mapa => {
         const card = criarCardMapa(mapa, grupos[mapa]);
-        pagina.appendChild(card);
-        count++;
-
-        if (count % 4 === 0 && mapa !== mapas[mapas.length - 1]) {
-          pagina = document.createElement("div");
-          pagina.className = "grid";
-          container.appendChild(pagina);
-        }
+        container.appendChild(card);
       });
     }
 
@@ -181,7 +227,8 @@
         const item = document.createElement("li");
         item.textContent = l.Endereco || l.Endereço || l.endereco || "";
         const restricao = (l.Restrico || l.Restricao || l.restricao || "").toUpperCase();
-        if (restricao.includes("ANCI") || restricao.includes("IDOSO")) item.classList.add("restrito");
+        if (restricao.includes("ANCI") || restricao.includes("IDOSO"))
+          item.classList.add("restrito");
         lista.appendChild(item);
       });
 
