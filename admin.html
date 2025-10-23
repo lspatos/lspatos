@@ -2,143 +2,145 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Administrativo — LS PATOS</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <title>Admin - Mapas</title>
   <style>
-    body { background: #f5f4f8; font-family: Arial, sans-serif; }
-    h1 { color: #5a2d82; font-weight: 700; text-align: center; margin: 40px 0 20px; }
-    table { background: #fff; border-radius: 6px; overflow: hidden; }
-    th { background-color: #5a2d82; color: white; text-align: center; }
-    td, th { padding: 10px; text-align: center; }
-    .btn-custom { background-color: #5a2d82; color: white; border: none; }
-    .btn-custom:hover { background-color: #452160; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 { font-size: 22px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th { background: #f3f3f3; }
+    button {
+      margin: 5px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    #log {
+      margin-top: 15px;
+      font-size: 12px;
+      color: #666;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
-  <div class="container mt-4">
-    <h1>Painel Administrativo — LS PATOS</h1>
-    <div class="card p-3 mb-4">
-      <div class="row g-2">
-        <div class="col-md-3">
-          <input type="text" id="mapa" class="form-control" placeholder="Mapa (ex: Mapa 01)">
-        </div>
-        <div class="col-md-4">
-          <input type="text" id="endereco" class="form-control" placeholder="Endereço completo">
-        </div>
-        <div class="col-md-3">
-          <input type="text" id="restricao" class="form-control" placeholder="Restrição (opcional)">
-        </div>
-        <div class="col-md-2 d-flex">
-          <button id="salvarBtn" class="btn btn-custom flex-fill me-2">Salvar / Atualizar</button>
-          <button id="limparBtn" class="btn btn-secondary flex-fill">Limpar</button>
-        </div>
-      </div>
-      <input type="hidden" id="id">
-    </div>
+  <h1>Administração de Mapas</h1>
 
-    <table class="table table-bordered table-striped">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Mapa</th>
-          <th>Endereço</th>
-          <th>Restrição</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="tabelaMapas"></tbody>
-    </table>
-  </div>
+  <form id="formMapa">
+    <input type="hidden" id="id">
+    <label>Mapa: <input type="text" id="mapa" required></label>
+    <label>Endereço: <input type="text" id="endereco" required></label>
+    <label>Restrição: <input type="text" id="restricao"></label>
+    <button type="submit">Salvar</button>
+    <button type="button" onclick="resetForm()">Novo</button>
+  </form>
 
-<script>
-  const scriptURL = "https://script.google.com/macros/s/AKfycbzJfHbtwyeUEzDnEfFGeSMTARv1_QQbcCYEwPMMmdYiGmtLT0zCci72E_3MyvBA1Pn8uA/exec";
-  
-  // === Carregar Mapas ===
-  async function carregarMapas() {
-    try {
-      const response = await fetch(`${scriptURL}?tabela=mapas`);
-      const dados = await response.json();
-  
-      // Se for erro, exibe no console e para
-      if (dados.erro) {
-        console.error("Erro do servidor:", dados.erro);
-        alert("Erro ao carregar os dados. Veja o console para detalhes.");
-        return;
-      }
-  
-      const tbody = document.querySelector("tbody");
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Mapa</th>
+        <th>Endereço</th>
+        <th>Restrição</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="log"></div>
+
+  <script>
+    const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+
+    async function carregarMapas() {
+      const res = await fetch(`${workerURL}?acao=read&aba=mapas`);
+      const data = await res.json();
+      const tbody = document.querySelector("#tabela tbody");
       tbody.innerHTML = "";
-  
-      dados.forEach(item => {
+      data.registros.forEach(item => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${item.ID || ""}</td>
-          <td>${item.Mapa || ""}</td>
-          <td>${item.Endereco || ""}</td>
-          <td>${item.Restricao || ""}</td>
+          <td>${esc(item.ID)}</td>
+          <td>${esc(item.Mapa)}</td>
+          <td>${esc(item.Endereco)}</td>
+          <td>${esc(item.Restricao)}</td>
           <td>
-            <button onclick="editar('${item.ID}', '${item.Mapa}', '${item.Endereco}', '${item.Restricao}')">✏️</button>
-            <button onclick="excluir('${item.ID}')">🗑️</button>
+            <button onclick="editar('${item.ID}','${esc(item.Mapa)}','${esc(item.Endereco)}','${esc(item.Restricao)}')">Editar</button>
+            <button onclick="excluir('${item.ID}')">Excluir</button>
           </td>
         `;
         tbody.appendChild(tr);
       });
-  
-    } catch (err) {
-      console.error("Erro em carregarMapas:", err);
-      alert("Erro ao conectar ao servidor.");
+      log(`Mapas carregados: ${data.total}`);
     }
-  }
-  
-  
-  // === Salvar / Atualizar ===
-  async function salvar() {
-    const mapa = document.querySelector("#mapa").value;
-    const endereco = document.querySelector("#endereco").value;
-    const restricao = document.querySelector("#restricao").value;
-    const id = document.querySelector("#id").value || "";
-  
-    if (!mapa || !endereco) {
-      alert("Preencha pelo menos Mapa e Endereço.");
-      return;
-    }
-  
-    try {
-      const response = await fetch(scriptURL, {
+
+    async function excluir(id) {
+      if (!confirm("Confirma exclusão?")) return;
+      const res = await fetch(workerURL, {
         method: "POST",
-        body: JSON.stringify({ mapa, endereco, restricao, id })
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ acao: "delete", id })
       });
-  
-      const result = await response.json();
-      console.log(result);
-  
-      if (result.erro) alert("Erro: " + result.erro);
-      else alert(result.status || "Salvo com sucesso");
-  
+      const out = await res.json();
+      log(JSON.stringify(out, null, 2));
       carregarMapas();
-  
-    } catch (err) {
-      console.error("Erro no salvar:", err);
-      alert("Falha ao enviar os dados.");
     }
-  }
-  
-  function limpar() {
-    document.querySelector("#mapa").value = "";
-    document.querySelector("#endereco").value = "";
-    document.querySelector("#restricao").value = "";
-    document.querySelector("#id").value = "";
-  }
-  
-  function editar(id, mapa, endereco, restricao) {
-    document.querySelector("#id").value = id;
-    document.querySelector("#mapa").value = mapa;
-    document.querySelector("#endereco").value = endereco;
-    document.querySelector("#restricao").value = restricao;
-  }
-  
-  window.onload = carregarMapas;
-</script>
+
+    document.querySelector("#formMapa").addEventListener("submit", async e => {
+      e.preventDefault();
+      const body = {
+        acao: document.querySelector("#id").value ? "update" : "add",
+        mapa: document.querySelector("#mapa").value,
+        endereco: document.querySelector("#endereco").value,
+        restricao: document.querySelector("#restricao").value,
+        id: document.querySelector("#id").value
+      };
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(body)
+      });
+      const out = await res.json();
+      log(JSON.stringify(out, null, 2));
+      resetForm();
+      carregarMapas();
+    });
+
+    function editar(id, mapa, endereco, restricao) {
+      document.querySelector("#id").value = id;
+      document.querySelector("#mapa").value = mapa;
+      document.querySelector("#endereco").value = endereco;
+      document.querySelector("#restricao").value = restricao;
+    }
+
+    function resetForm() {
+      document.querySelector("#id").value = "";
+      document.querySelector("#formMapa").reset();
+    }
+
+    function esc(s) {
+      return String(s || "").replace(/[&<>"']/g, m => (
+        {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]
+      ));
+    }
+
+    function log(msg) {
+      document.querySelector("#log").textContent = msg;
+      console.log(msg);
+    }
+
+    carregarMapas();
+  </script>
 </body>
 </html>
