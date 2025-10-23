@@ -1,114 +1,65 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapa</title>
-  <meta name="theme-color" content="#5c3d89" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="icon" href="fav_icon.ico" type="image/x-icon">  
-  <!-- CSS interno (mantido no estilo atual) -->
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
-          * { margin: 0; font-family: "Montserrat", sans-serif; }
-          html, body { height: 100vh; }
-          .cabecalho {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        height: 15vh;
-        background-color: #5c3d89;
-        color: #fff;
-      
-        /* torna fixo no topo ao rolar */
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        box-shadow: 0 2px 8px rgba(0,0,0,.12); /* opcional, dá um realce */
-      }
-          .div_titulo_texto { border-bottom: solid #ffffff; }
-          .button_back { background-color: #fff; color: #5c3d89; width: 50px; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-          .icon_back { width: 20px; }
-          .aviso { width: 70%; padding: 20px; }
-          .container_end { width: 90%; background-color: #e8e6e6; border-radius: 10px; margin: 15px auto; padding: 10px; }
-          .entradas { display: flex; gap: 10px; margin-top: 10px; }
-          .btn-verde { background-color: #4caf50; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-          .btn-vermelho { background-color: #f44336; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-          .btn-endereco { background-color: #ff9100; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-          input[type="submit"]:hover { opacity: 0.9; }
-          /* Destaque para endereços IR ANCIÃO */
-          .container_end.anciao {
-          background-color: #FF5039;        /* vermelho bem suave */
-          border-left: 6px solid #000000;   /* faixa para chamar atenção */
-          box-shadow: 0 1px 0 rgba(0,0,0,.03);
-        }
-          .container_end.anciao h4 {
-          color: #ffffff;                   /* título um pouco mais forte */
-        }
-          #enderecos {
-          padding-bottom: 40px; /* Espaço extra ao final da lista */
-        }
-      /* ===============================
-           SKELETON CARREGAMENTO (EFEITO)
-        ================================*/
-        .skeleton-container {
-          width: 90%;
-          margin: 0 auto;
-        }
-        
-        .skeleton-card {
-          background: #e0e0e0;
-          border-radius: 10px;
-          height: 90px;
-          margin: 10px 0;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .skeleton-card::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -150px;
-          height: 100%;
-          width: 150px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-          animation: loading 1.2s infinite;
-        }
-        
-        @keyframes loading {
-          100% {
-            left: 100%;
-          }
-        }
+  <meta charset="UTF-8">
+  <title>Envio de Respostas - LS Mapas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 { font-size: 22px; }
+    form { display: flex; flex-direction: column; gap: 8px; width: 300px; }
+    label { font-weight: bold; }
+    input, select { padding: 6px; }
+    button { padding: 6px; cursor: pointer; }
+    #log { margin-top: 10px; font-size: 12px; color: #555; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <section class="cabecalho">
-    <a href="index.html">
-      <div class="button_back"><img class="icon_back" src="home.png" alt="Voltar" /></div>
-    </a>
-    <div class="div_titulo"><h1 id="tituloMapa" class="div_titulo_texto"></h1></div>
-  </section>
+  <h1>Registro de Resposta</h1>
+  <form id="formResposta">
+    <label>Data e Hora: <input type="datetime-local" id="dataHora" required></label>
+    <label>Status:
+      <select id="status" required>
+        <option value="">Selecione</option>
+        <option>Em andamento</option>
+        <option>Concluído</option>
+        <option>Atrasado</option>
+      </select>
+    </label>
+    <label>Setor: <input type="text" id="setor" required></label>
+    <label>Endereço: <input type="text" id="endereco" required></label>
+    <button type="submit">Enviar</button>
+  </form>
+  <div id="log"></div>
 
-  <section class="aviso">
-    <h3>*Atenção:</h3><br>
-    <p>Após clicar, aguarde até que a mensagem "Resposta registrada com sucesso!" seja exibida. Agradecemos.</p>
-  </section>
-
-  <!-- Container dinâmico -->
-  </div>
-  <section id="enderecos"></section>
-  <script src="script.js"></script>
   <script>
-    // Pega número do mapa pela URL
-    const params = new URLSearchParams(window.location.search);
-    const numeroMapa = params.get("mapa");
-    const nomeMapa = "Mapa " + numeroMapa;
+    const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
 
-    document.getElementById("tituloMapa").innerText = nomeMapa;
-    gerarEnderecos(nomeMapa);
+    document.querySelector("#formResposta").addEventListener("submit", async e => {
+      e.preventDefault();
+      const body = {
+        acao: "submit",
+        dataHora: document.querySelector("#dataHora").value,
+        status: document.querySelector("#status").value,
+        setor: document.querySelector("#setor").value,
+        endereco: document.querySelector("#endereco").value
+      };
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(body)
+      });
+      const out = await res.json();
+      log(JSON.stringify(out, null, 2));
+      e.target.reset();
+    });
+
+    function log(msg) {
+      document.querySelector("#log").textContent = msg;
+      console.log(msg);
+    }
   </script>
 </body>
 </html>
