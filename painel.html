@@ -2,379 +2,80 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#5c3d89" />
-  <link rel="icon" href="fav_icon.ico" type="image/x-icon">  
-  <title>Painel LS MAPAS</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Painel - LS Mapas</title>
   <style>
-    body {
-      font-family: "Montserrat", sans-serif;
-      padding: 20px;
-      background-color: #fafafa;
-    }
-
-    h1 {
-      text-align: center;
-      color: #5c3d89;
-    }
-
-    /* Cards de indicadores */
-    .indicadores {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-      margin: 25px 0;
-    }
-
-    .card {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-      padding: 15px 20px;
-      text-align: center;
-      min-width: 180px;
-    }
-
-    .card h3 {
-      font-size: 15px;
-      color: #5c3d89;
-      margin-bottom: 5px;
-    }
-
-    .card p {
-      font-size: 16px;
-      font-weight: bold;
-      margin: 0;
-    }
-
-    .alerta {
-      color: #f44336;
-      font-weight: bold;
-      animation: piscar 1s infinite alternate;
-    }
-
-    @keyframes piscar {
-      from { opacity: 1; }
-      to { opacity: 0.4; }
-    }
-
-    /* 🔹 Gráficos lado a lado — mesmo tamanho, sem distorção */
-    .graficos-lado-a-lado {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      gap: 40px;
-      flex-wrap: wrap;
-      margin-top: 40px;
-    }
-    
-    .grafico-container,
-    .grafico-barras {
-      flex: 1 1 420px;
-      max-width: 420px;
-      aspect-ratio: 1 / 1; /* 🔹 Mantém proporção quadrada */
-      background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain; /* 🔹 Evita esticar */
-    }
-
-    .filtro {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    select {
-      padding: 8px 12px;
-      border-radius: 5px;
-      border: 1px solid #5c3d89;
-      font-size: 14px;
-      background-color: white;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-      background: white;
-      box-shadow: 0 0 8px rgba(0,0,0,0.05);
-    }
-
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-      font-size: 14px;
-    }
-
-    th {
-      background-color: #5c3d89;
-      color: white;
-    }
-
-    #status {
-      text-align: center;
-      color: #5c3d89;
-    }
-
-    /* Lista dos mapas mais antigos */
-    #mapasAntigos {
-      background: white;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-      border-radius: 8px;
-      padding: 15px 25px;
-      max-width: 600px;
-      margin: 0 auto 30px auto;
-    }
-
-    #mapasAntigos h3 {
-      margin-bottom: 10px;
-      color: #5c3d89;
-      text-align: center;
-    }
-
-    #listaAntigos li {
-      font-size: 15px;
-      margin: 5px 0;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { font-size: 22px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f3f3f3; }
+    #log { margin-top: 10px; font-size: 12px; color: #555; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <h1>Painel de Resultados LS MAPAS</h1>
-
-  <!-- 🔹 Indicadores -->
-  <div class="indicadores" id="indicadores">
-    <div class="card"><h3>Último ciclo</h3><p id="ultimoCiclo">-</p></div>
-    <div class="card"><h3>Média dos ciclos</h3><p id="mediaCiclos">-</p></div>
-    <div class="card"><h3>Dias desde o último ciclo</h3><p id="diasDesde">-</p></div>
-    <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
-  </div>
-
-  <!-- 🔹 Mapas menos atualizados -->
-  <div id="mapasAntigos">
-    <h3>🕒 Mapas com mais tempo sem atualização</h3>
-    <ul id="listaAntigos" style="list-style:none; padding-left:0; margin-top:10px; text-align:left;"></ul>
-  </div>
-
-  <!-- 🔹 Filtro -->
-  <div class="filtro">
-    <label for="filtroMapa">Filtrar por mapa:</label>
-    <select id="filtroMapa">
-      <option value="todos">Todos</option>
-    </select>
-  </div>
-
-  <p id="status">⏳ Carregando dados...</p>
-
-  <!-- 🔹 Gráficos lado a lado -->
-  <div class="graficos-lado-a-lado">
-    <div class="grafico-container">
-      <canvas id="grafico"></canvas>
-    </div>
-
-    <div class="grafico-barras">
-      <canvas id="graficoCiclos"></canvas>
-    </div>
-  </div>
-
-  <div id="tabela"></div>
+  <h1>Painel de Monitoramento</h1>
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>Data e Hora</th>
+        <th>Status</th>
+        <th>Setor</th>
+        <th>Endereço</th>
+        <th>Tempo (min)</th>
+        <th>Situação</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div id="log"></div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbx6JI_Cimu7-u8QOVquvF86PhlFuTmfJZPiFDbbFfWgPeV6GQf-uT-12xfZ7eSkQaiBjg/exec";
-    let dadosGlobais = [];
-    let graficoPizza, graficoCiclos;
+    const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
 
-    async function carregarDados() {
-      try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error("Erro HTTP " + res.status);
-        const dados = await res.json();
-        dadosGlobais = dados;
-        console.log("Dados recebidos:", dados);
+    async function carregar() {
+      const res = await fetch(`${workerURL}?acao=read&aba=Respostas`);
+      const data = await res.json();
+      const tbody = document.querySelector("#tabela tbody");
+      tbody.innerHTML = "";
 
-        document.getElementById("status").style.display = "none";
-        preencherFiltro(dados);
-        atualizarPainel("todos");
-        calcularIndicadores(dados);
-        mostrarMapasAntigos(dados);
-
-      } catch (err) {
-        console.error("Erro ao carregar:", err);
-        document.getElementById("status").textContent = "❌ Erro ao carregar dados.";
-      }
-    }
-
-    function preencherFiltro(dados) {
-      const filtro = document.getElementById("filtroMapa");
-      const mapas = [...new Set(dados.map(d => d.Setor || d.setor))].sort();
-      mapas.forEach(mapa => {
-        const opt = document.createElement("option");
-        opt.value = mapa;
-        opt.textContent = mapa;
-        filtro.appendChild(opt);
-      });
-      filtro.addEventListener("change", e => atualizarPainel(e.target.value));
-    }
-
-    function atualizarPainel(mapaSelecionado) {
-      let filtrados = dadosGlobais;
-      if (mapaSelecionado !== "todos") {
-        filtrados = dadosGlobais.filter(d => (d.Setor || d.setor) === mapaSelecionado);
-      }
-
-      const encontrados = filtrados.filter(d => d.Status === "Encontrado" || d.status === "Encontrado").length;
-      const naoEncontrados = filtrados.filter(d => d.Status === "Não encontrado" || d.status === "Não encontrado").length;
-
-      if (graficoPizza) graficoPizza.destroy();
-      graficoPizza = new Chart(document.getElementById("grafico"), {
-        type: "doughnut",
-        data: {
-          labels: ["Encontrado", "Não encontrado"],
-          datasets: [{
-            data: [encontrados, naoEncontrados],
-            backgroundColor: ["#4caf50", "#f44336"]
-          }]
-        },
-        options: { plugins: { legend: { position: "bottom" } } }
+      const tempos = [];
+      data.registros.forEach(item => {
+        const tempo = calcularMinutos(item["Data e Hora"]);
+        if (item.Status === "Concluído") tempos.push(tempo);
       });
 
-      const linhas = filtrados.map(d => `
-        <tr>
-          <td>${d["Data e Hora"] || d.dataHora}</td>
-          <td>${d.Setor || d.setor}</td>
-          <td>${d.Endereço || d.endereco}</td>
-          <td>${d.Status || d.status}</td>
-        </tr>`).join("");
+      const media = tempos.length ? (tempos.reduce((a,b)=>a+b,0) / tempos.length) : 0;
+      const limite = media * 1.1;
 
-      document.getElementById("tabela").innerHTML = `
-        <table>
-          <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
-          ${linhas || "<tr><td colspan='4'>Nenhum registro encontrado.</td></tr>"}
-        </table>`;
-    }
-
-    // 🔹 Indicadores e ciclos
-    function calcularIndicadores(dados) {
-      const registros = dados.map(d => ({
-        setor: d.Setor || d.setor,
-        data: new Date(d["Data e Hora"] || d.dataHora)
-      })).sort((a, b) => a.data - b.data);
-
-      const todosMapas = [...new Set(registros.map(r => r.setor))];
-      const totalMapas = todosMapas.length;
-      let visitados = new Set();
-      let inicioCiclo = registros[0]?.data;
-      let ciclos = [];
-
-      for (let r of registros) {
-        visitados.add(r.setor);
-        if (visitados.size === totalMapas) {
-          const fim = r.data;
-          const duracaoDias = Math.round((fim - inicioCiclo) / (1000 * 60 * 60 * 24));
-          ciclos.push({ inicio: inicioCiclo, fim, duracaoDias });
-          visitados = new Set();
-          inicioCiclo = r.data;
-        }
-      }
-
-      // 🧮 Indicadores principais
-      const ultimo = ciclos[ciclos.length - 1];
-      const media = ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length || 0;
-      const hoje = new Date();
-      const diasDesde = ultimo ? Math.round((hoje - ultimo.fim) / (1000 * 60 * 60 * 24)) : "-";
-      const cicloAtualDias = Math.round((hoje - inicioCiclo) / (1000 * 60 * 60 * 24));
-
-      document.getElementById("ultimoCiclo").textContent = ultimo
-        ? `${ultimo.duracaoDias} dias`
-        : "-";
-      document.getElementById("mediaCiclos").textContent = `${media.toFixed(1)} dias`;
-      document.getElementById("diasDesde").textContent = `${diasDesde} dias`;
-
-      const statusCiclo = document.getElementById("statusCiclo");
-      if (cicloAtualDias > media && ciclos.length > 0) {
-        statusCiclo.innerHTML = `<span class="alerta">Atrasado (${cicloAtualDias} dias)</span>`;
-      } else {
-        statusCiclo.textContent = `Dentro da média (${cicloAtualDias} dias)`;
-        statusCiclo.style.color = "#4caf50";
-      }
-
-      gerarGraficoCiclos(ciclos);
-    }
-
-    // 🔹 Gráfico de barras (histórico de ciclos)
-    function gerarGraficoCiclos(ciclos) {
-      if (graficoCiclos) graficoCiclos.destroy();
-
-      if (ciclos.length === 0) {
-        document.querySelector(".grafico-barras").style.display = "none";
-        return;
-      }
-
-      const labels = ciclos.map((c, i) => `Ciclo ${i + 1}`);
-      const valores = ciclos.map(c => c.duracaoDias);
-
-      graficoCiclos = new Chart(document.getElementById("graficoCiclos"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Duração (dias)",
-            data: valores,
-            backgroundColor: "#5c3d89"
-          }]
-        },
-        options: {
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: "Duração de cada ciclo (em dias)" }
-          },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    }
-
-    // 🔹 Mapas com mais tempo sem atualização
-    function mostrarMapasAntigos(dados) {
-      const registrosPorMapa = {};
-
-      dados.forEach(d => {
-        const setor = d.Setor || d.setor;
-        const data = new Date(d["Data e Hora"] || d.dataHora);
-        if (!registrosPorMapa[setor] || data > registrosPorMapa[setor]) {
-          registrosPorMapa[setor] = data;
-        }
+      data.registros.forEach(item => {
+        const tempo = calcularMinutos(item["Data e Hora"]);
+        const situacao = (tempo > limite) ? "Atrasado" : "Dentro do prazo";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item["Data e Hora"]}</td>
+          <td>${item.Status}</td>
+          <td>${item.Setor}</td>
+          <td>${item.Endereco}</td>
+          <td>${tempo.toFixed(1)}</td>
+          <td>${situacao}</td>
+        `;
+        tbody.appendChild(tr);
       });
 
-      const hoje = new Date();
-      const lista = Object.entries(registrosPorMapa).map(([setor, ultimaData]) => ({
-        setor,
-        dias: Math.round((hoje - ultimaData) / (1000 * 60 * 60 * 24))
-      }));
-
-      lista.sort((a, b) => b.dias - a.dias);
-      const top4 = lista.slice(0, 4);
-
-      const ul = document.getElementById("listaAntigos");
-      ul.innerHTML = top4.map(item =>
-        `<li>🔸 <strong>${item.setor}</strong> — ${item.dias} dias</li>`
-      ).join("");
+      log(`Registros: ${data.total} | Média: ${media.toFixed(1)} min | Limite: ${limite.toFixed(1)} min`);
     }
 
-    carregarDados();
+    function calcularMinutos(dataHora) {
+      const d = new Date(dataHora);
+      return (Date.now() - d.getTime()) / 60000;
+    }
+
+    function log(msg) {
+      document.querySelector("#log").textContent = msg;
+      console.log(msg);
+    }
+
+    carregar();
   </script>
 </body>
 </html>
