@@ -84,20 +84,9 @@
 <div style="position:relative; width:100%;">
   <input type="password" id="senha" placeholder="Senha" class="form-control"
          style="padding-right:38px;">
-  <button type="button" id="toggleSenha"
-          style="position:absolute; right:10px; top:50%; transform:translateY(-50%);
-                 background:none; border:none; cursor:pointer; padding:0;">
-    <!-- Olho fechado (senha oculta por padrão) -->
-    <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="22" height="22"
-         fill="#5a2d82" viewBox="0 0 24 24">
-      <path d="M12 6.5C7 6.5 2.73 9.11 1 13c.78 1.82 2.05 3.39 3.66 4.58L2.1 20.15 3.52 21.6l18-18-1.4-1.4-3.04 3.04C15.9 4.65 14 4.5 12 4.5c-2.1 0-4.07.54-5.81 1.49l1.46 1.46C9.53 6.77 10.75 6.5 12 6.5zm9.36 5.5a9.77 9.77 0 0 0-2.49-3.83L20.35 6c1.7 1.29 2.97 3.25 3.65 6-.68 2.75-1.95 4.71-3.65 6a9.77 9.77 0 0 0-2.49-3.83L21.36 12z"/>
-    </svg>
-    <!-- Olho aberto (mostrar senha) -->
-    <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="22" height="22"
-         fill="#5a2d82" viewBox="0 0 24 24" style="display:none;">
-      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
-    </svg>
-  </button>
+  <img id="toggleSenha" src="hide.png" alt="Mostrar senha"
+       style="position:absolute; right:10px; top:50%; transform:translateY(-50%);
+              width:20px; height:20px; cursor:pointer; opacity:0.8;">
 </div>
       <button onclick="login()">Entrar</button>
       <div id="loginMsg"></div>
@@ -299,13 +288,17 @@
     if (token) iniciarPainel();
 document.getElementById("toggleSenha").onclick = () => {
   const campo = document.getElementById("senha");
-  const eyeOpen = document.getElementById("eyeOpen");
-  const eyeClosed = document.getElementById("eyeClosed");
-  const mostrando = campo.type === "text";
+  const icone = document.getElementById("toggleSenha");
 
-  campo.type = mostrando ? "password" : "text";
-  eyeOpen.style.display = mostrando ? "none" : "block";
-  eyeClosed.style.display = mostrando ? "block" : "none";
+  if (campo.type === "password") {
+    campo.type = "text";
+    icone.src = "view.png"; // mostra senha
+    icone.alt = "Ocultar senha";
+  } else {
+    campo.type = "password";
+    icone.src = "hide.png"; // esconde senha
+    icone.alt = "Mostrar senha";
+  }
 };
 </script>
 </body>
