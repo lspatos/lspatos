@@ -2,150 +2,61 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#5c3d89" />
-  <link rel="icon" href="fav_icon.ico" type="image/x-icon">  
-  <title>Relatório LS MAPAS</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link rel="stylesheet" href="style.css">
+  <title>Relatório - LS Mapas</title>
   <style>
-    body {
-      font-family: "Montserrat", sans-serif;
-      background: #fafafa;
-      color: #333;
-      padding: 0;
-      margin: 0;
-      overflow-y: auto; /* scroll habilitado */
-    }
-
-    h1 {
-      text-align: center;
-      color: #fff;
-      background-color: #5c3d89;
-      padding: 20px;
-      margin: 0 0 20px 0;
-    }
-
-    .btn-gerar {
-      display: block;
-      margin: 20px auto;
-      padding: 10px 25px;
-      background-color: #5c3d89;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    .btn-gerar:hover { opacity: 0.9; }
-
-    .pagina {
-      width: 297mm;
-      min-height: 210mm;
-      background: white;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 15px;
-      box-sizing: border-box;
-      padding: 20px;
-      margin: 0 auto 40px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-    }
-
-    .mapa-bloco {
-      background: #f5f5f5;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      padding: 12px;
-    }
-
-    .mapa-titulo {
-      background-color: #5c3d89;
-      color: white;
-      padding: 8px;
-      border-radius: 6px;
-      text-align: center;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .endereco-item {
-      background-color: #e8e6e6;
-      border-radius: 8px;
-      padding: 6px 10px;
-      margin-bottom: 5px;
-      font-size: 13px;
-    }
-
-    .endereco-item.anciao {
-      background-color: #ffcccc;
-      border-left: 6px solid #c62828;
-      color: #6b0000;
-      font-weight: 600;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { font-size: 22px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f3f3f3; }
+    button { margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>Relatório de Mapas LS PATOS</h1>
-  <button class="btn-gerar" onclick="gerarPDF()">📄 Baixar PDF dos Mapas</button>
-  <div id="conteudo"></div>
+  <h1>Relatório de Respostas</h1>
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>Data e Hora</th>
+        <th>Status</th>
+        <th>Setor</th>
+        <th>Endereço</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button onclick="copiar()">Copiar para Área de Transferência</button>
 
-  <script src="script.js"></script>
   <script>
-    function gerarLayout() {
-      const container = document.getElementById("conteudo");
-      container.innerHTML = "";
+    const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
 
-      const nomesMapas = Object.keys(mapas);
-      for (let i = 0; i < nomesMapas.length; i += 4) {
-        const pagina = document.createElement("div");
-        pagina.className = "pagina";
-
-        for (let j = i; j < i + 4 && j < nomesMapas.length; j++) {
-          const nomeMapa = nomesMapas[j];
-          const bloco = document.createElement("div");
-          bloco.className = "mapa-bloco";
-
-          const titulo = document.createElement("div");
-          titulo.className = "mapa-titulo";
-          titulo.textContent = nomeMapa;
-          bloco.appendChild(titulo);
-
-          mapas[nomeMapa].forEach((endereco, idx) => {
-            const divEnd = document.createElement("div");
-            divEnd.className = "endereco-item";
-            if (/ir\s*anci[ãa]o/i.test(endereco)) divEnd.classList.add("anciao");
-            divEnd.textContent = `${idx + 1}. ${endereco}`;
-            bloco.appendChild(divEnd);
-          });
-
-          pagina.appendChild(bloco);
-        }
-        container.appendChild(pagina);
-      }
+    async function carregar() {
+      const res = await fetch(`${workerURL}?acao=read&aba=Respostas`);
+      const data = await res.json();
+      const tbody = document.querySelector("#tabela tbody");
+      tbody.innerHTML = "";
+      data.registros.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item["Data e Hora"]}</td>
+          <td>${item.Status}</td>
+          <td>${item.Setor}</td>
+          <td>${item.Endereco}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      console.log("Relatório carregado", data.total);
     }
 
-    async function gerarPDF() {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const paginas = document.querySelectorAll(".pagina");
-
-      for (let i = 0; i < paginas.length; i++) {
-        const canvas = await html2canvas(paginas[i], { scale: 2 });
-        const imgData = canvas.toDataURL("image/png");
-        const imgWidth = 297;
-        const imgHeight = 210;
-        if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      }
-      pdf.save("LS_MAPAS.pdf");
+    function copiar() {
+      const texto = Array.from(document.querySelectorAll("#tabela tr"))
+        .map(tr => Array.from(tr.children).map(td => td.innerText).join("\t"))
+        .join("\n");
+      navigator.clipboard.writeText(texto);
+      alert("Relatório copiado.");
     }
 
-    gerarLayout();
+    carregar();
   </script>
 </body>
 </html>
