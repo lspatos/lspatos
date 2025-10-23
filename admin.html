@@ -81,7 +81,14 @@
     <div id="loginCard">
       <h2>Login Administrativo</h2>
       <input type="text" id="usuario" placeholder="Usuário">
-      <input type="password" id="senha" placeholder="Senha">
+      <div style="position:relative;">
+        <input type="password" id="senha" placeholder="Senha" style="padding-right:40px;">
+        <button type="button" id="toggleSenha" 
+                style="position:absolute; right:8px; top:50%; transform:translateY(-50%);
+                       background:none; border:none; cursor:pointer; color:#5a2d82; font-size:14px;">
+          👁
+        </button>
+      </div>
       <button onclick="login()">Entrar</button>
       <div id="loginMsg"></div>
     </div>
@@ -279,7 +286,12 @@
   }
 
   // === Sessão Persistente ===
-  if (token) iniciarPainel();
+    if (token) iniciarPainel();
+    document.getElementById("toggleSenha").onclick = () => {
+    const campo = document.getElementById("senha");
+    campo.type = campo.type === "password" ? "text" : "password";
+  };
+
 </script>
 </body>
 </html>
