@@ -2,72 +2,124 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - Mapas</title>
+  <title>Admin - LS Mapas (Acesso Seguro)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    h1 { font-size: 22px; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #loginBox, #adminBox { display: none; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background: #f3f3f3; }
-    button {
-      margin: 5px;
-      padding: 6px 10px;
-      cursor: pointer;
-    }
-    #log {
-      margin-top: 15px;
-      font-size: 12px;
-      color: #666;
-      white-space: pre-wrap;
-    }
+    button { margin: 5px; padding: 6px 10px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h1>Administração de Mapas</h1>
+  <div id="loginBox">
+    <h2>Login Administrativo</h2>
+    <form id="formLogin">
+      <label>Usuário: <input type="text" id="usuario" required></label><br>
+      <label>Senha: <input type="password" id="senha" required></label><br><br>
+      <button type="submit">Entrar</button>
+    </form>
+    <div id="msgLogin"></div>
+  </div>
 
-  <form id="formMapa">
-    <input type="hidden" id="id">
-    <label>Mapa: <input type="text" id="mapa" required></label>
-    <label>Endereço: <input type="text" id="endereco" required></label>
-    <label>Restrição: <input type="text" id="restricao"></label>
-    <button type="submit">Salvar</button>
-    <button type="button" onclick="resetForm()">Novo</button>
-  </form>
+  <div id="adminBox">
+    <h1>Administração de Mapas</h1>
+    <form id="formMapa">
+      <input type="hidden" id="id">
+      <label>Mapa: <input type="text" id="mapa" required></label>
+      <label>Endereço: <input type="text" id="endereco" required></label>
+      <label>Restrição: <input type="text" id="restricao"></label>
+      <button type="submit">Salvar</button>
+      <button type="button" onclick="resetForm()">Novo</button>
+      <button type="button" onclick="logout()">Sair</button>
+    </form>
 
-  <table id="tabela">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Mapa</th>
-        <th>Endereço</th>
-        <th>Restrição</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <table id="tabela">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Mapa</th>
+          <th>Endereço</th>
+          <th>Restrição</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-  <div id="log"></div>
+    <div style="margin-top:15px;">
+      <button onclick="abrirPainel()">Abrir Painel</button>
+      <button onclick="abrirRelatorio()">Abrir Relatório</button>
+    </div>
+
+    <pre id="log"></pre>
+  </div>
 
   <script>
     const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+    let token = sessionStorage.getItem("authToken") || null;
 
-    async function carregarMapas() {
-      const res = await fetch(`${workerURL}?acao=read&aba=mapas`);
+    // login inicial
+    document.addEventListener("DOMContentLoaded", () => {
+      if (token) {
+        document.getElementById("adminBox").style.display = "block";
+        carregarMapas();
+      } else {
+        document.getElementById("loginBox").style.display = "block";
+      }
+    });
+
+    // --- login ---
+    document.getElementById("formLogin").addEventListener("submit", async e => {
+      e.preventDefault();
+      const usuario = document.getElementById("usuario").value;
+      const senha = document.getElementById("senha").value;
+
+      const res = await fetch(workerURL + "login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario, senha })
+      });
+
       const data = await res.json();
+      if (data.token) {
+        sessionStorage.setItem("authToken", data.token);
+        token = data.token;
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("adminBox").style.display = "block";
+        carregarMapas();
+      } else {
+        document.getElementById("msgLogin").textContent = data.erro || "Falha no login";
+      }
+    });
+
+    function logout() {
+      sessionStorage.removeItem("authToken");
+      token = null;
+      location.reload();
+    }
+
+    // --- CRUD ---
+    async function carregarMapas() {
+      const res = await fetch(`${workerURL}?acao=read&aba=mapas`, {
+        headers: { "x-auth-token": token }
+      });
+      const data = await res.json();
+
+      // token expirado
+      if (data.erro && data.erro.includes("Sessão")) {
+        logout();
+        return;
+      }
+
       const tbody = document.querySelector("#tabela tbody");
       tbody.innerHTML = "";
+      if (!data.registros) {
+        log(JSON.stringify(data, null, 2));
+        return;
+      }
+
       data.registros.forEach(item => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -82,17 +134,26 @@
         `;
         tbody.appendChild(tr);
       });
-      log(`Mapas carregados: ${data.total}`);
+      log("Mapas carregados: " + data.total);
     }
 
     async function excluir(id) {
-      if (!confirm("Confirma exclusão?")) return;
+      if (!confirm("Excluir este registro?")) return;
       const res = await fetch(workerURL, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token
+        },
         body: JSON.stringify({ acao: "delete", id })
       });
       const out = await res.json();
+
+      if (out.erro && out.erro.includes("Sessão")) {
+        logout();
+        return;
+      }
+
       log(JSON.stringify(out, null, 2));
       carregarMapas();
     }
@@ -108,10 +169,19 @@
       };
       const res = await fetch(workerURL, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token
+        },
         body: JSON.stringify(body)
       });
       const out = await res.json();
+
+      if (out.erro && out.erro.includes("Sessão")) {
+        logout();
+        return;
+      }
+
       log(JSON.stringify(out, null, 2));
       resetForm();
       carregarMapas();
@@ -140,7 +210,16 @@
       console.log(msg);
     }
 
-    carregarMapas();
+    // --- Botões de navegação ---
+    function abrirPainel() {
+      if (!token) return alert("Sessão inválida. Faça login novamente.");
+      window.open(`painel.html?token=${encodeURIComponent(token)}`, "_blank");
+    }
+
+    function abrirRelatorio() {
+      if (!token) return alert("Sessão inválida. Faça login novamente.");
+      window.open(`relatorio.html?token=${encodeURIComponent(token)}`, "_blank");
+    }
   </script>
 </body>
 </html>
