@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#5c3d89" />
   <link rel="icon" href="fav_icon.ico" type="image/x-icon">
   <title>Relatório LS MAPAS</title>
+
   <style>
     @page {
       size: A4 landscape;
@@ -22,7 +24,6 @@
       print-color-adjust: exact !important;
     }
 
-    /* --- Cabeçalho --- */
     h1 {
       text-align: center;
       color: #5a2d82;
@@ -59,7 +60,7 @@
       background-color: #452160;
     }
 
-    /* --- Layout responsivo --- */
+    /* layout visual responsivo */
     .relatorio {
       display: grid;
       grid-template-columns: 1fr;
@@ -75,7 +76,6 @@
       }
     }
 
-    /* --- Cartões de mapas --- */
     .mapa-card {
       background: white;
       border-radius: 8px;
@@ -123,15 +123,13 @@
       font-weight: 600;
     }
 
-    /* --- Layout fixo para impressão --- */
+    /* layout fixo p/ impressão */
     @media print {
       h1, .top-bar { display: none !important; }
-      body {
-        background: white;
-        margin: 0;
-      }
+      body { background: white; margin: 0; }
 
-      .relatorio {
+      .pagina {
+        display: grid;
         grid-template-columns: repeat(2, 1fr);
         grid-template-rows: repeat(2, 1fr);
         gap: 10mm;
@@ -139,6 +137,7 @@
         height: 190mm;
         margin: 0 auto;
         page-break-after: always;
+        box-sizing: border-box;
       }
 
       .mapa-card {
@@ -148,6 +147,7 @@
     }
   </style>
 </head>
+
 <body>
   <h1>Relatório LS MAPAS</h1>
 
@@ -156,7 +156,7 @@
     <button class="btn-custom" onclick="window.print()">📄 Gerar PDF</button>
   </div>
 
-  <div id="relatorioContainer" class="relatorio"></div>
+  <div id="relatorioContainer"></div>
 
   <script>
     const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
@@ -194,9 +194,20 @@
       const grupos = agruparPorMapa(dados);
       const mapas = Object.keys(grupos).sort();
 
-      mapas.forEach(mapa => {
+      let pagina = document.createElement("div");
+      pagina.className = "pagina";
+      container.appendChild(pagina);
+
+      mapas.forEach((mapa, i) => {
         const card = criarCardMapa(mapa, grupos[mapa]);
-        container.appendChild(card);
+        pagina.appendChild(card);
+
+        // cria nova página a cada 4 mapas
+        if ((i + 1) % 4 === 0 && i < mapas.length - 1) {
+          pagina = document.createElement("div");
+          pagina.className = "pagina";
+          container.appendChild(pagina);
+        }
       });
     }
 
