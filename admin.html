@@ -83,10 +83,14 @@
       <input type="text" id="usuario" placeholder="Usuário">
       <div style="position:relative;">
         <input type="password" id="senha" placeholder="Senha" style="padding-right:40px;">
-        <button type="button" id="toggleSenha" 
-                style="position:absolute; right:8px; top:50%; transform:translateY(-50%);
-                       background:none; border:none; cursor:pointer; color:#5a2d82; font-size:14px;">
-          👁
+        <button type="button" id="toggleSenha"
+                style="position:absolute; right:10px; top:50%; transform:translateY(-50%);
+                       background:none; border:none; cursor:pointer;">
+          <svg id="iconEye" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#5a2d82"
+               viewBox="0 0 16 16">
+            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/>
+            <path d="M8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
+          </svg>
         </button>
       </div>
       <button onclick="login()">Entrar</button>
@@ -287,11 +291,15 @@
 
   // === Sessão Persistente ===
     if (token) iniciarPainel();
-    document.getElementById("toggleSenha").onclick = () => {
+   document.getElementById("toggleSenha").onclick = () => {
     const campo = document.getElementById("senha");
-    campo.type = campo.type === "password" ? "text" : "password";
+    const icon = document.getElementById("iconEye");
+    const mostrando = campo.type === "text";
+    campo.type = mostrando ? "password" : "text";
+    icon.innerHTML = mostrando
+      ? '<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/><path d="M8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>'
+      : '<path d="M13.359 11.238l2.147 2.146-.708.708-2.185-2.184A8.943 8.943 0 0 1 8 13.5C3 13.5 0 8 0 8a17.6 17.6 0 0 1 2.879-3.397l-.886-.887.707-.707 12 12-.707.707-1.634-1.634zM3.708 5.5A16.84 16.84 0 0 0 1 8s3 5.5 8 5.5c1.385 0 2.656-.297 3.772-.826L9.354 9.256A3 3 0 0 1 6.744 6.646L3.708 5.5z"/>';
   };
-
 </script>
 </body>
 </html>
