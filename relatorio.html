@@ -2,79 +2,199 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório - LS Mapas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#5c3d89" />
+  <link rel="icon" href="fav_icon.ico" type="image/x-icon">  
+  <title>Relatório LS MAPAS</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background: #f3f3f3; }
-    button { margin-top: 10px; padding: 6px 10px; cursor: pointer; }
+    @page { size: A4 landscape; margin: 10mm; }
+
+    body {
+      font-family: "Montserrat", sans-serif;
+      background: #fafafa;
+      color: #333;
+      padding: 10px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 15px;
+    }
+
+    .btn-custom {
+      background-color: #5a2d82;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-custom:hover { background-color: #452160; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 15px;
+      page-break-inside: avoid;
+    }
+
+    .mapa-card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 0;
+      page-break-inside: avoid;
+    }
+
+    .mapa-header {
+      background: #5a2d82;
+      color: white;
+      text-align: center;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 6px 0;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .mapa-body {
+      padding: 10px 14px;
+    }
+
+    .mapa-body ol {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 14px;
+      list-style-position: inside;
+    }
+
+    .mapa-body li {
+      margin: 3px 0;
+      padding: 3px 5px;
+      border-radius: 4px;
+    }
+
+    .restrito {
+      background: #ffe5e5;
+      color: #b71c1c;
+      font-weight: 600;
+    }
+
+    @media print {
+      .top-bar { display: none !important; }
+      body { background: white; }
+      .mapa-card { box-shadow: none; }
+    }
   </style>
 </head>
 <body>
-  <h1>Relatório de Respostas</h1>
-  <button onclick="voltar()">Voltar ao Admin</button>
-  <table id="tabela">
-    <thead>
-      <tr>
-        <th>Data e Hora</th>
-        <th>Status</th>
-        <th>Setor</th>
-        <th>Endereço</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  <button onclick="copiar()">Copiar Relatório</button>
+  <div class="top-bar">
+    <button class="btn-custom" onclick="voltar()">⬅ Voltar ao Admin</button>
+  </div>
+
+  <div id="relatorioContainer"></div>
 
   <script>
     const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
     const token = new URLSearchParams(location.search).get("token");
 
     if (!token) {
-      document.body.innerHTML = "<h3>Acesso negado. Faça login pelo admin.</h3>";
+      document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;'>Acesso negado. Faça login pelo admin.</h3>";
       throw new Error("Token ausente");
     }
 
-    async function carregar() {
-      const res = await fetch(`${workerURL}?acao=read&aba=Respostas`, {
-        headers: { "x-auth-token": token }
-      });
-      const data = await res.json();
+    async function carregarMapas() {
+      try {
+        const res = await fetch(`${workerURL}?acao=read&aba=mapas`, {
+          headers: { "x-auth-token": token }
+        });
+        const dados = await res.json();
 
-      if (data.erro && data.erro.includes("Sessão")) {
-        alert("Sessão expirada. Faça login novamente.");
-        location.href = "admin.html";
-        return;
+        if (dados.erro && dados.erro.includes("Sessão")) {
+          alert("Sessão expirada. Faça login novamente.");
+          window.location.href = "admin.html";
+          return;
+        }
+
+        const registros = dados.registros || [];
+        gerarRelatorio(registros);
+      } catch (err) {
+        console.error("Erro ao carregar mapas:", err);
+        document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;'>Erro ao carregar mapas.</h3>";
       }
+    }
 
-      const tbody = document.querySelector("#tabela tbody");
-      tbody.innerHTML = "";
-      data.registros.forEach(item => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${item["Data e Hora"]}</td>
-          <td>${item.Status}</td>
-          <td>${item.Setor}</td>
-          <td>${item.Endereco}</td>
-        `;
-        tbody.appendChild(tr);
+    function gerarRelatorio(dados) {
+      const container = document.getElementById("relatorioContainer");
+      container.innerHTML = "";
+
+      const grupos = agruparPorMapa(dados);
+      const mapas = Object.keys(grupos).sort();
+
+      let pagina = document.createElement("div");
+      pagina.className = "grid";
+      container.appendChild(pagina);
+
+      let count = 0;
+
+      mapas.forEach(mapa => {
+        const card = criarCardMapa(mapa, grupos[mapa]);
+        pagina.appendChild(card);
+        count++;
+
+        if (count % 4 === 0 && mapa !== mapas[mapas.length - 1]) {
+          pagina = document.createElement("div");
+          pagina.className = "grid";
+          container.appendChild(pagina);
+        }
       });
     }
 
-    function copiar() {
-      const texto = Array.from(document.querySelectorAll("#tabela tr"))
-        .map(tr => Array.from(tr.children).map(td => td.innerText).join("\t"))
-        .join("\n");
-      navigator.clipboard.writeText(texto);
-      alert("Relatório copiado para a área de transferência.");
+    function agruparPorMapa(dados) {
+      const grupos = {};
+      dados.forEach(linha => {
+        const mapa = linha.Mapa || linha.mapa || "Sem Mapa";
+        if (!grupos[mapa]) grupos[mapa] = [];
+        grupos[mapa].push(linha);
+      });
+      return grupos;
+    }
+
+    function criarCardMapa(nomeMapa, linhas) {
+      const card = document.createElement("div");
+      card.className = "mapa-card";
+
+      const header = document.createElement("div");
+      header.className = "mapa-header";
+      header.textContent = nomeMapa;
+      card.appendChild(header);
+
+      const body = document.createElement("div");
+      body.className = "mapa-body";
+
+      const lista = document.createElement("ol");
+      linhas.forEach(l => {
+        const item = document.createElement("li");
+        item.textContent = l.Endereco || l.Endereço || l.endereco || "";
+        const restricao = (l.Restrico || l.Restricao || l.restricao || "").toUpperCase();
+        if (restricao.includes("ANCI") || restricao.includes("IDOSO")) item.classList.add("restrito");
+        lista.appendChild(item);
+      });
+
+      body.appendChild(lista);
+      card.appendChild(body);
+      return card;
     }
 
     function voltar() {
       window.location.href = "admin.html";
     }
 
-    carregar();
+    carregarMapas();
   </script>
 </body>
 </html>
