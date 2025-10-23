@@ -5,15 +5,16 @@
   <title>Painel - LS Mapas</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { font-size: 22px; }
     table { border-collapse: collapse; width: 100%; margin-top: 10px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background: #f3f3f3; }
+    button { margin-top: 10px; padding: 6px 10px; cursor: pointer; }
     #log { margin-top: 10px; font-size: 12px; color: #555; white-space: pre-wrap; }
   </style>
 </head>
 <body>
   <h1>Painel de Monitoramento</h1>
+  <button onclick="voltar()">Voltar ao Admin</button>
   <table id="tabela">
     <thead>
       <tr>
@@ -31,10 +32,25 @@
 
   <script>
     const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+    const token = new URLSearchParams(location.search).get("token");
+
+    if (!token) {
+      document.body.innerHTML = "<h3>Acesso negado. Faça login pelo admin.</h3>";
+      throw new Error("Token ausente");
+    }
 
     async function carregar() {
-      const res = await fetch(`${workerURL}?acao=read&aba=Respostas`);
+      const res = await fetch(`${workerURL}?acao=read&aba=Respostas`, {
+        headers: { "x-auth-token": token }
+      });
       const data = await res.json();
+
+      if (data.erro && data.erro.includes("Sessão")) {
+        alert("Sessão expirada. Faça login novamente.");
+        location.href = "admin.html";
+        return;
+      }
+
       const tbody = document.querySelector("#tabela tbody");
       tbody.innerHTML = "";
 
@@ -73,6 +89,10 @@
     function log(msg) {
       document.querySelector("#log").textContent = msg;
       console.log(msg);
+    }
+
+    function voltar() {
+      window.location.href = "admin.html";
     }
 
     carregar();
