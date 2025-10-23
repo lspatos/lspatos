@@ -247,23 +247,20 @@ async function gerarEnderecos(nomeMapa) {
 
 async function handleSubmit(status, setor, endereco) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-  const payload = { dataHora, status, setor, endereco };
+  // adicionar a chave acao
+  const payload = { acao: "submit", dataHora, status, setor, endereco };
 
   showToast("⏳ Enviando...");
-
   try {
     const response = await fetch(proxyURL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-
-    let resultText = await response.text();
-    let ok = /success|ok/i.test(resultText);
-
+    const resultText = await response.text();
+    const ok = /success|ok|registrado/i.test(resultText);
     showToast(ok ? "✅ Resposta registrada com sucesso!" : "⚠ Erro no envio.");
-  } catch (error) {
-    console.error("Erro ao enviar:", error);
+  } catch {
     showToast("❌ Falha na conexão.");
   }
 }
