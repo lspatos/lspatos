@@ -5,15 +5,15 @@
   <title>Relatório - LS Mapas</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { font-size: 22px; }
     table { border-collapse: collapse; width: 100%; margin-top: 10px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background: #f3f3f3; }
-    button { margin-top: 10px; }
+    button { margin-top: 10px; padding: 6px 10px; cursor: pointer; }
   </style>
 </head>
 <body>
   <h1>Relatório de Respostas</h1>
+  <button onclick="voltar()">Voltar ao Admin</button>
   <table id="tabela">
     <thead>
       <tr>
@@ -25,14 +25,29 @@
     </thead>
     <tbody></tbody>
   </table>
-  <button onclick="copiar()">Copiar para Área de Transferência</button>
+  <button onclick="copiar()">Copiar Relatório</button>
 
   <script>
     const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+    const token = new URLSearchParams(location.search).get("token");
+
+    if (!token) {
+      document.body.innerHTML = "<h3>Acesso negado. Faça login pelo admin.</h3>";
+      throw new Error("Token ausente");
+    }
 
     async function carregar() {
-      const res = await fetch(`${workerURL}?acao=read&aba=Respostas`);
+      const res = await fetch(`${workerURL}?acao=read&aba=Respostas`, {
+        headers: { "x-auth-token": token }
+      });
       const data = await res.json();
+
+      if (data.erro && data.erro.includes("Sessão")) {
+        alert("Sessão expirada. Faça login novamente.");
+        location.href = "admin.html";
+        return;
+      }
+
       const tbody = document.querySelector("#tabela tbody");
       tbody.innerHTML = "";
       data.registros.forEach(item => {
@@ -45,7 +60,6 @@
         `;
         tbody.appendChild(tr);
       });
-      console.log("Relatório carregado", data.total);
     }
 
     function copiar() {
@@ -53,7 +67,11 @@
         .map(tr => Array.from(tr.children).map(td => td.innerText).join("\t"))
         .join("\n");
       navigator.clipboard.writeText(texto);
-      alert("Relatório copiado.");
+      alert("Relatório copiado para a área de transferência.");
+    }
+
+    function voltar() {
+      window.location.href = "admin.html";
     }
 
     carregar();
