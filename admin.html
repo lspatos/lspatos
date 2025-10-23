@@ -105,6 +105,12 @@
           <button id="salvarBtn" class="btn btn-custom flex-fill me-2">Salvar / Atualizar</button>
           <button id="limparBtn" class="btn btn-secondary flex-fill">Limpar</button>
         </div>
+        </div>
+          <div class="text-center mt-4">
+          <button class="btn btn-custom me-2" onclick="abrirPainel()">📊 Painel</button>
+          <button class="btn btn-custom me-2" onclick="abrirRelatorio()">📂 Relatórios</button>
+          <button class="btn btn-secondary" onclick="logout()">Sair</button>
+        </div>
       </div>
       <input type="hidden" id="id">
     </div>
@@ -121,13 +127,6 @@
       </thead>
       <tbody id="tabelaMapas"></tbody>
     </table>
-
-    <div class="text-center mt-4">
-      <button class="btn btn-custom me-2" onclick="abrirPainel()">📊 Painel</button>
-      <button class="btn btn-custom me-2" onclick="abrirRelatorio()">📂 Relatórios</button>
-      <button class="btn btn-secondary" onclick="logout()">Sair</button>
-    </div>
-  </div>
 
 <script>
   const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
