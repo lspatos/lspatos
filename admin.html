@@ -2,40 +2,114 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - LS Mapas (Acesso Seguro)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Administrativo — LS PATOS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #loginBox, #adminBox { display: none; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background: #f3f3f3; }
-    button { margin: 5px; padding: 6px 10px; cursor: pointer; }
+    body {
+      background: #f5f4f8;
+      font-family: "Montserrat", sans-serif;
+    }
+    h1 {
+      color: #5a2d82;
+      font-weight: 700;
+      text-align: center;
+      margin: 40px 0 20px;
+    }
+    table {
+      background: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    th {
+      background-color: #5a2d82;
+      color: white;
+      text-align: center;
+    }
+    td, th { padding: 10px; text-align: center; }
+    .btn-custom { background-color: #5a2d82; color: white; border: none; }
+    .btn-custom:hover { background-color: #452160; }
+    /* --- Tela de login estilizada --- */
+    #loginScreen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(160deg,#5a2d82 40%,#7c52b0);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #loginCard {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 12px;
+      width: 320px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    #loginCard h2 {
+      color: #5a2d82;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+    #loginCard input {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 100%;
+      font-size: 15px;
+    }
+    #loginCard button {
+      width: 100%;
+      padding: 10px;
+      background: #5a2d82;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #loginCard button:hover { background: #452160; }
+    #loginMsg { color: #f44336; margin-top: 8px; }
   </style>
 </head>
 <body>
-  <div id="loginBox">
-    <h2>Login Administrativo</h2>
-    <form id="formLogin">
-      <label>Usuário: <input type="text" id="usuario" required></label><br>
-      <label>Senha: <input type="password" id="senha" required></label><br><br>
-      <button type="submit">Entrar</button>
-    </form>
-    <div id="msgLogin"></div>
+
+  <!-- 🔐 Tela de Login -->
+  <div id="loginScreen">
+    <div id="loginCard">
+      <h2>Login Administrativo</h2>
+      <input type="text" id="usuario" placeholder="Usuário">
+      <input type="password" id="senha" placeholder="Senha">
+      <button onclick="login()">Entrar</button>
+      <div id="loginMsg"></div>
+    </div>
   </div>
 
-  <div id="adminBox">
-    <h1>Administração de Mapas</h1>
-    <form id="formMapa">
+  <!-- 🔧 Painel Administrativo -->
+  <div id="painel" class="container mt-4" style="display:none;">
+    <h1>Painel Administrativo — LS PATOS</h1>
+    <div class="card p-3 mb-4">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input type="text" id="mapa" class="form-control" placeholder="Mapa (ex: Mapa 01)">
+        </div>
+        <div class="col-md-4">
+          <input type="text" id="endereco" class="form-control" placeholder="Endereço completo">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="restricao" class="form-control" placeholder="Restrição (opcional)">
+        </div>
+        <div class="col-md-2 d-flex">
+          <button id="salvarBtn" class="btn btn-custom flex-fill me-2">Salvar / Atualizar</button>
+          <button id="limparBtn" class="btn btn-secondary flex-fill">Limpar</button>
+        </div>
+      </div>
       <input type="hidden" id="id">
-      <label>Mapa: <input type="text" id="mapa" required></label>
-      <label>Endereço: <input type="text" id="endereco" required></label>
-      <label>Restrição: <input type="text" id="restricao"></label>
-      <button type="submit">Salvar</button>
-      <button type="button" onclick="resetForm()">Novo</button>
-      <button type="button" onclick="logout()">Sair</button>
-    </form>
+    </div>
 
-    <table id="tabela">
+    <table class="table table-bordered table-striped">
       <thead>
         <tr>
           <th>ID</th>
@@ -45,100 +119,120 @@
           <th>Ações</th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody id="tabelaMapas"></tbody>
     </table>
 
-    <div style="margin-top:15px;">
-      <button onclick="abrirPainel()">Abrir Painel</button>
-      <button onclick="abrirRelatorio()">Abrir Relatório</button>
+    <div class="text-center mt-4">
+      <button class="btn btn-custom me-2" onclick="abrirPainel()">📊 Painel</button>
+      <button class="btn btn-custom me-2" onclick="abrirRelatorio()">📂 Relatórios</button>
+      <button class="btn btn-secondary" onclick="logout()">Sair</button>
     </div>
-
-    <pre id="log"></pre>
   </div>
 
-  <script>
-    const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
-    let token = sessionStorage.getItem("authToken") || null;
+<script>
+  const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+  let token = sessionStorage.getItem("authToken");
 
-    // login inicial
-    document.addEventListener("DOMContentLoaded", () => {
-      if (token) {
-        document.getElementById("adminBox").style.display = "block";
-        carregarMapas();
-      } else {
-        document.getElementById("loginBox").style.display = "block";
-      }
-    });
+  // === Login ===
+  async function login() {
+    const usuario = document.getElementById("usuario").value.trim();
+    const senha = document.getElementById("senha").value.trim();
+    const msg = document.getElementById("loginMsg");
 
-    // --- login ---
-    document.getElementById("formLogin").addEventListener("submit", async e => {
-      e.preventDefault();
-      const usuario = document.getElementById("usuario").value;
-      const senha = document.getElementById("senha").value;
-
+    msg.textContent = "Validando...";
+    try {
       const res = await fetch(workerURL + "login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ usuario, senha })
       });
-
       const data = await res.json();
+
       if (data.token) {
         sessionStorage.setItem("authToken", data.token);
         token = data.token;
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("adminBox").style.display = "block";
-        carregarMapas();
+        iniciarPainel();
       } else {
-        document.getElementById("msgLogin").textContent = data.erro || "Falha no login";
+        msg.textContent = data.erro || "Usuário ou senha incorretos.";
       }
-    });
-
-    function logout() {
-      sessionStorage.removeItem("authToken");
-      token = null;
-      location.reload();
+    } catch (err) {
+      msg.textContent = "Erro de conexão.";
     }
+  }
 
-    // --- CRUD ---
-    async function carregarMapas() {
+  function iniciarPainel() {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("painel").style.display = "block";
+    carregarMapas();
+  }
+
+  function logout() {
+    sessionStorage.removeItem("authToken");
+    token = null;
+    location.reload();
+  }
+
+  // === CRUD Mapas ===
+  async function carregarMapas() {
+    try {
       const res = await fetch(`${workerURL}?acao=read&aba=mapas`, {
         headers: { "x-auth-token": token }
       });
-      const data = await res.json();
+      const dados = await res.json();
 
-      // token expirado
-      if (data.erro && data.erro.includes("Sessão")) {
-        logout();
-        return;
-      }
+      if (dados.erro && dados.erro.includes("Sessão")) return logout();
 
-      const tbody = document.querySelector("#tabela tbody");
+      const tbody = document.getElementById("tabelaMapas");
       tbody.innerHTML = "";
-      if (!data.registros) {
-        log(JSON.stringify(data, null, 2));
-        return;
-      }
-
-      data.registros.forEach(item => {
+      dados.registros.forEach(item => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${esc(item.ID)}</td>
-          <td>${esc(item.Mapa)}</td>
-          <td>${esc(item.Endereco)}</td>
-          <td>${esc(item.Restricao)}</td>
+          <td>${item.ID || ""}</td>
+          <td>${item.Mapa || ""}</td>
+          <td>${item.Endereco || ""}</td>
+          <td>${item.Restrico || item.Restricão || item.Restricao || ""}</td>
           <td>
-            <button onclick="editar('${item.ID}','${esc(item.Mapa)}','${esc(item.Endereco)}','${esc(item.Restricao)}')">Editar</button>
-            <button onclick="excluir('${item.ID}')">Excluir</button>
-          </td>
-        `;
+            <button class="btn btn-sm btn-warning" onclick="editar('${item.ID}','${item.Mapa}','${item.Endereco}','${item.Restricao}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="excluir('${item.ID}')">🗑️</button>
+          </td>`;
         tbody.appendChild(tr);
       });
-      log("Mapas carregados: " + data.total);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao carregar dados.");
     }
+  }
 
-    async function excluir(id) {
-      if (!confirm("Excluir este registro?")) return;
+  async function salvar() {
+    const mapa = document.getElementById("mapa").value;
+    const endereco = document.getElementById("endereco").value;
+    const restricao = document.getElementById("restricao").value;
+    const id = document.getElementById("id").value || "";
+
+    if (!mapa || !endereco) return alert("Preencha Mapa e Endereço.");
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token
+        },
+        body: JSON.stringify({ acao: id ? "update" : "add", mapa, endereco, restricao, id })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      alert(data.status || "Registro salvo com sucesso.");
+      limpar();
+      carregarMapas();
+    } catch {
+      alert("Erro ao salvar.");
+    }
+  }
+
+  async function excluir(id) {
+    if (!confirm("Excluir registro?")) return;
+    try {
       const res = await fetch(workerURL, {
         method: "POST",
         headers: {
@@ -147,79 +241,45 @@
         },
         body: JSON.stringify({ acao: "delete", id })
       });
-      const out = await res.json();
-
-      if (out.erro && out.erro.includes("Sessão")) {
-        logout();
-        return;
-      }
-
-      log(JSON.stringify(out, null, 2));
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      alert("Excluído.");
       carregarMapas();
+    } catch {
+      alert("Erro ao excluir.");
     }
+  }
 
-    document.querySelector("#formMapa").addEventListener("submit", async e => {
-      e.preventDefault();
-      const body = {
-        acao: document.querySelector("#id").value ? "update" : "add",
-        mapa: document.querySelector("#mapa").value,
-        endereco: document.querySelector("#endereco").value,
-        restricao: document.querySelector("#restricao").value,
-        id: document.querySelector("#id").value
-      };
-      const res = await fetch(workerURL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-auth-token": token
-        },
-        body: JSON.stringify(body)
-      });
-      const out = await res.json();
+  function editar(id, mapa, endereco, restricao) {
+    document.getElementById("id").value = id;
+    document.getElementById("mapa").value = mapa;
+    document.getElementById("endereco").value = endereco;
+    document.getElementById("restricao").value = restricao;
+  }
 
-      if (out.erro && out.erro.includes("Sessão")) {
-        logout();
-        return;
-      }
+  function limpar() {
+    document.getElementById("id").value = "";
+    document.getElementById("mapa").value = "";
+    document.getElementById("endereco").value = "";
+    document.getElementById("restricao").value = "";
+  }
 
-      log(JSON.stringify(out, null, 2));
-      resetForm();
-      carregarMapas();
-    });
+  document.getElementById("salvarBtn").onclick = salvar;
+  document.getElementById("limparBtn").onclick = limpar;
 
-    function editar(id, mapa, endereco, restricao) {
-      document.querySelector("#id").value = id;
-      document.querySelector("#mapa").value = mapa;
-      document.querySelector("#endereco").value = endereco;
-      document.querySelector("#restricao").value = restricao;
-    }
+  // === Navegação ===
+  function abrirPainel() {
+    if (!token) return alert("Sessão expirada.");
+    window.open(`painel.html?token=${encodeURIComponent(token)}`, "_blank");
+  }
 
-    function resetForm() {
-      document.querySelector("#id").value = "";
-      document.querySelector("#formMapa").reset();
-    }
+  function abrirRelatorio() {
+    if (!token) return alert("Sessão expirada.");
+    window.open(`relatorio.html?token=${encodeURIComponent(token)}`, "_blank");
+  }
 
-    function esc(s) {
-      return String(s || "").replace(/[&<>"']/g, m => (
-        {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]
-      ));
-    }
-
-    function log(msg) {
-      document.querySelector("#log").textContent = msg;
-      console.log(msg);
-    }
-
-    // --- Botões de navegação ---
-    function abrirPainel() {
-      if (!token) return alert("Sessão inválida. Faça login novamente.");
-      window.open(`painel.html?token=${encodeURIComponent(token)}`, "_blank");
-    }
-
-    function abrirRelatorio() {
-      if (!token) return alert("Sessão inválida. Faça login novamente.");
-      window.open(`relatorio.html?token=${encodeURIComponent(token)}`, "_blank");
-    }
-  </script>
+  // === Sessão Persistente ===
+  if (token) iniciarPainel();
+</script>
 </body>
 </html>
