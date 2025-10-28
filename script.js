@@ -201,9 +201,10 @@ async function handleSubmit(status, setor, endereco) {
     let ok = false;
     try {
       const parsed = JSON.parse(resultText);
-      ok = parsed.result?.toLowerCase() === "success" || parsed.status?.toLowerCase() === "ok";
+      ok = ["ok", "success", "registrado"].includes(parsed.status?.toLowerCase()) 
+           || parsed.result?.toLowerCase() === "success";
     } catch {
-      ok = /ok|success/i.test(resultText);
+      ok = /ok|success|registrado/i.test(resultText);
     }
 
     if (ok) showToast("✅ Resposta registrada com sucesso!");
