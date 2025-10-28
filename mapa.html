@@ -7,84 +7,112 @@
   <meta name="theme-color" content="#5c3d89" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="icon" href="fav_icon.ico" type="image/x-icon">  
-  <!-- CSS interno (mantido no estilo atual) -->
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
-          * { margin: 0; font-family: "Montserrat", sans-serif; }
-          html, body { height: 100vh; }
-          .cabecalho {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        height: 15vh;
-        background-color: #5c3d89;
-        color: #fff;
-      
-        /* torna fixo no topo ao rolar */
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        box-shadow: 0 2px 8px rgba(0,0,0,.12); /* opcional, dá um realce */
-      }
-          .div_titulo_texto { border-bottom: solid #ffffff; }
-          .button_back { background-color: #fff; color: #5c3d89; width: 50px; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-          .icon_back { width: 20px; }
-          .aviso { width: 70%; padding: 20px; }
-          .container_end { width: 90%; background-color: #e8e6e6; border-radius: 10px; margin: 15px auto; padding: 10px; }
-          .entradas { display: flex; gap: 10px; margin-top: 10px; }
-          .btn-verde { background-color: #4caf50; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-          .btn-vermelho { background-color: #f44336; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-          .btn-endereco { background-color: #ff9100; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-          input[type="submit"]:hover { opacity: 0.9; }
-          /* Destaque para endereços IR ANCIÃO */
-          .container_end.anciao {
-          background-color: #FF5039;        /* vermelho bem suave */
-          border-left: 6px solid #000000;   /* faixa para chamar atenção */
-          box-shadow: 0 1px 0 rgba(0,0,0,.03);
-        }
-          .container_end.anciao h4 {
-          color: #ffffff;                   /* título um pouco mais forte */
-        }
-          #enderecos {
-          padding-bottom: 40px; /* Espaço extra ao final da lista */
-        }
-      /* ===============================
-           SKELETON CARREGAMENTO (EFEITO)
-        ================================*/
-        .skeleton-container {
-          width: 90%;
-          margin: 0 auto;
-        }
-        
-        .skeleton-card {
-          background: #e0e0e0;
-          border-radius: 10px;
-          height: 90px;
-          margin: 10px 0;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .skeleton-card::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -150px;
-          height: 100%;
-          width: 150px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-          animation: loading 1.2s infinite;
-        }
-        
-        @keyframes loading {
-          100% {
-            left: 100%;
-          }
-        }
+  <link rel="icon" href="fav_icon.ico" type="image/x-icon">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+    * { margin: 0; font-family: "Montserrat", sans-serif; }
+    html, body { height: 100vh; }
+
+    .cabecalho {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      height: 15vh;
+      background-color: #5c3d89;
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+
+    .div_titulo_texto { border-bottom: solid #ffffff; }
+    .button_back { background-color: #fff; color: #5c3d89; width: 50px; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .icon_back { width: 20px; }
+    .aviso { width: 70%; padding: 20px; }
+    .container_end { width: 90%; background-color: #e8e6e6; border-radius: 10px; margin: 15px auto; padding: 10px; }
+    .entradas { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-verde { background-color: #4caf50; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
+    .btn-vermelho { background-color: #f44336; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
+    .btn-endereco { background-color: #ff9100; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
+    input[type="submit"]:hover { opacity: 0.9; }
+
+    .container_end.anciao {
+      background-color: #fff4d6;
+      border-left: 6px solid #ff9800;
+      box-shadow: 0 1px 0 rgba(0,0,0,.03);
+    }
+    .container_end.anciao h4 { color: #7a3e00; }
+    #enderecos { padding-bottom: 40px; }
+
+    /* 🔹 Modal de identificação */
+    .modal {
+      display: flex;
+      position: fixed;
+      z-index: 999;
+      top: 0; left: 0; right: 0; bottom: 0;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .modal-content h2 {
+      color: #5c3d89;
+      margin-bottom: 15px;
+    }
+    .modal-content select {
+      padding: 8px 12px;
+      border: 1px solid #5c3d89;
+      border-radius: 6px;
+      font-size: 15px;
+      margin-bottom: 15px;
+      width: 220px;
+    }
+    .modal-content button {
+      background-color: #5c3d89;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    .modal-content button:hover {
+      background-color: #4b2f74;
+    }
   </style>
 </head>
 <body>
+  <!-- 🔹 Modal de identificação -->
+  <div id="identificacaoModal" class="modal">
+    <div class="modal-content">
+      <h2>Quem está realizando o mapa hoje?</h2>
+      <select id="responsavelSelect">
+        <option value="">Selecione seu nome</option>
+        <option value="Bruno">Bruno</option>
+        <option value="Diego">Diego</option>
+        <option value="Dieison">Dieison</option>
+        <option value="Elismar">Elismar</option>
+        <option value="Guilherme">Guilherme</option>
+        <option value="Jhonatan">Jhonatan</option>
+        <option value="Luís">Luís</option>
+        <option value="Lucas">Lucas</option>
+        <option value="Neiff">Neiff</option>
+        <option value="Pedro Paulo">Pedro Paulo</option>
+        <option value="Rafael">Rafael</option>
+        <option value="Viajante">Viajante</option>
+        <option value="Vitor">Vitor</option>
+      </select>
+      <button id="confirmarResponsavel">Confirmar</button>
+    </div>
+  </div>
+
   <section class="cabecalho">
     <a href="index.html">
       <div class="button_back"><img class="icon_back" src="home.png" alt="Voltar" /></div>
@@ -97,12 +125,10 @@
     <p>Após clicar, aguarde até que a mensagem "Resposta registrada com sucesso!" seja exibida. Agradecemos.</p>
   </section>
 
-  <!-- Container dinâmico -->
-  </div>
   <section id="enderecos"></section>
+
   <script src="script.js"></script>
   <script>
-    // Pega número do mapa pela URL
     const params = new URLSearchParams(window.location.search);
     const numeroMapa = params.get("mapa");
     const nomeMapa = "Mapa " + numeroMapa;
