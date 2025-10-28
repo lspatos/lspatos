@@ -173,10 +173,12 @@ function gerarEnderecos(nomeMapa) {
   });
 }
 
-// ENVIO PARA GOOGLE SHEETS (VIA PROXY)
+// ✅ ENVIO PARA GOOGLE SHEETS (VIA PROXY) — corrigido
 async function handleSubmit(status, setor, endereco) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+
   const payload = {
+    acao: "submit", // obrigatório para o Apps Script aceitar
     dataHora,
     status,
     setor,
@@ -193,22 +195,19 @@ async function handleSubmit(status, setor, endereco) {
       body: JSON.stringify(payload)
     });
 
-    let resultText = await response.text();
+    const resultText = await response.text();
     console.log("Resposta bruta:", resultText);
 
     let ok = false;
     try {
       const parsed = JSON.parse(resultText);
-      ok = parsed.result?.toLowerCase() === "success";
+      ok = parsed.result?.toLowerCase() === "success" || parsed.status?.toLowerCase() === "ok";
     } catch {
       ok = /ok|success/i.test(resultText);
     }
 
-    if (ok) {
-      showToast("✅ Resposta registrada com sucesso!");
-    } else {
-      showToast("⚠ Erro no envio.");
-    }
+    if (ok) showToast("✅ Resposta registrada com sucesso!");
+    else showToast("⚠ Erro no envio.");
   } catch (error) {
     console.error("Erro ao enviar:", error);
     showToast("❌ Falha na conexão.");
