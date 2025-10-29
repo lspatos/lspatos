@@ -380,20 +380,22 @@
 
     // === NOVO BOTÃO GERAR S-13 VIA WORKER ===
     document.getElementById("btnS13").addEventListener("click", async () => {
-      const anoServico = prompt("Informe o Ano de Serviço (ex: 2025-2026):");
-      if (!anoServico) return;
-      try {
-        const resp = await fetch(`${workerURL}/gerar-s13?anoServico=${encodeURIComponent(anoServico)}`);
-        const data = await resp.json();
-        if (data.status === "ok") {
-          alert(`S-13 gerado com sucesso: ${data.arquivo} (salvo no Google Drive)`);
-        } else {
-          alert("Erro ao gerar S-13.");
-        }
-      } catch (err) {
-        alert("Falha na comunicação com o servidor.");
+    const ano = prompt("Informe o Ano de Serviço (ex: 2025-2026):");
+    if (!ano) return;
+  
+    try {
+      const resp = await fetch(`${workerURL}/gerar-s13?anoServico=${encodeURIComponent(ano)}`);
+      const data = await resp.json();
+  
+      if (data.status === "ok") {
+        alert(`S-13 gerado com sucesso!\nArquivo: ${data.arquivo}\n(O PDF foi salvo no Google Drive.)`);
+      } else {
+        alert(`Erro ao gerar S-13: ${data.mensagem || "Falha desconhecida."}`);
       }
-    });
+    } catch (err) {
+      alert("Erro de comunicação com o servidor: " + err.message);
+    }
+  });
   </script>
 </body>
 </html>
