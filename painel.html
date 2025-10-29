@@ -159,7 +159,9 @@
     <div class="card"><h3>Dias desde o último ciclo</h3><p id="diasDesde">-</p></div>
     <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
   </div>
-
+  
+  <button id="btnS13" class="btn btn-primary mt-2">Gerar S-13</button>
+  
   <div id="mapasAntigos">
     <h3>🕒 Mapas com mais tempo sem atualização</h3>
     <ul id="listaAntigos" style="list-style:none; padding-left:0; margin-top:10px; text-align:left;"></ul>
@@ -361,6 +363,15 @@
     }
 
     carregarDados();
+
+    document.getElementById("btnS13").addEventListener("click", () => {
+      const anoServico = prompt("Informe o Ano de Serviço (ex: 2025-2026):");
+      if (!anoServico) return;
+      google.script.run
+        .withSuccessHandler(nome => alert(`PDF ${nome} gerado com sucesso no Drive.`))
+        .withFailureHandler(err => alert("Erro ao gerar S-13: " + err))
+        .gerarS13(anoServico);
+    });
   </script>
 </body>
 </html>
