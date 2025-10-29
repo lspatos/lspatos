@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -27,6 +27,19 @@
       cursor: pointer;
     }
     .btn-custom:hover { background-color: #452160; }
+    .btn-s13 {
+      background-color: #5a2d82;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      margin: 10px auto 25px auto;
+      display: block;
+      cursor: pointer;
+      transition: background-color .2s;
+    }
+    .btn-s13:hover { background-color: #452160; }
     .top-bar {
       display: flex;
       justify-content: flex-end;
@@ -160,7 +173,8 @@
     <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
   </div>
   
-  <button id="btnS13" class="btn btn-primary mt-2">Gerar S-13</button>
+  <!-- Botão Gerar S-13 atualizado -->
+  <button id="btnS13" class="btn-s13">📄 Gerar S-13</button>
   
   <div id="mapasAntigos">
     <h3>🕒 Mapas com mais tempo sem atualização</h3>
@@ -364,13 +378,21 @@
 
     carregarDados();
 
-    document.getElementById("btnS13").addEventListener("click", () => {
+    // === NOVO BOTÃO GERAR S-13 VIA WORKER ===
+    document.getElementById("btnS13").addEventListener("click", async () => {
       const anoServico = prompt("Informe o Ano de Serviço (ex: 2025-2026):");
       if (!anoServico) return;
-      google.script.run
-        .withSuccessHandler(nome => alert(`PDF ${nome} gerado com sucesso no Drive.`))
-        .withFailureHandler(err => alert("Erro ao gerar S-13: " + err))
-        .gerarS13(anoServico);
+      try {
+        const resp = await fetch(`${workerURL}/gerar-s13?anoServico=${encodeURIComponent(anoServico)}`);
+        const data = await resp.json();
+        if (data.status === "ok") {
+          alert(`S-13 gerado com sucesso: ${data.arquivo} (salvo no Google Drive)`);
+        } else {
+          alert("Erro ao gerar S-13.");
+        }
+      } catch (err) {
+        alert("Falha na comunicação com o servidor.");
+      }
     });
   </script>
 </body>
