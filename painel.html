@@ -1,10 +1,10 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#5c3d89" />
-  <link rel="icon" href="fav_icon.ico" type="image/x-icon">  
+  <link rel="icon" href="fav_icon.ico" type="image/x-icon">
   <title>Painel LS MAPAS</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -27,19 +27,6 @@
       cursor: pointer;
     }
     .btn-custom:hover { background-color: #452160; }
-    .btn-s13 {
-      background-color: #5a2d82;
-      color: #fff;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 6px;
-      font-weight: 600;
-      margin: 10px auto 25px auto;
-      display: block;
-      cursor: pointer;
-      transition: background-color .2s;
-    }
-    .btn-s13:hover { background-color: #452160; }
     .top-bar {
       display: flex;
       justify-content: flex-end;
@@ -157,6 +144,18 @@
       font-size: 15px;
       margin: 5px 0;
     }
+    #btnS13 {
+      display: block;
+      margin: 0 auto;
+      background-color: #5a2d82;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    #btnS13:hover { background-color: #452160; }
   </style>
 </head>
 <body>
@@ -172,10 +171,9 @@
     <div class="card"><h3>Dias desde o último ciclo</h3><p id="diasDesde">-</p></div>
     <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
   </div>
-  
-  <!-- Botão Gerar S-13 atualizado -->
-  <button id="btnS13" class="btn-s13">📄 Gerar S-13</button>
-  
+
+  <button id="btnS13">📄 Gerar S-13</button>
+
   <div id="mapasAntigos">
     <h3>🕒 Mapas com mais tempo sem atualização</h3>
     <ul id="listaAntigos" style="list-style:none; padding-left:0; margin-top:10px; text-align:left;"></ul>
@@ -191,18 +189,14 @@
   <p id="status">⏳ Carregando dados...</p>
 
   <div class="graficos-lado-a-lado">
-    <div class="grafico-container">
-      <canvas id="grafico"></canvas>
-    </div>
-    <div class="grafico-barras">
-      <canvas id="graficoCiclos"></canvas>
-    </div>
+    <div class="grafico-container"><canvas id="grafico"></canvas></div>
+    <div class="grafico-barras"><canvas id="graficoCiclos"></canvas></div>
   </div>
 
   <div id="tabela"></div>
 
   <script>
-    const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+    const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev";
     const token = new URLSearchParams(location.search).get("token");
 
     if (!token) {
@@ -219,13 +213,11 @@
           headers: { "x-auth-token": token }
         });
         const dados = await res.json();
-
         if (dados.erro && dados.erro.includes("Sessão")) {
           alert("Sessão expirada. Faça login novamente.");
           window.location.href = "admin.html";
           return;
         }
-
         dadosGlobais = dados.registros || [];
         document.getElementById("status").style.display = "none";
         preencherFiltro();
@@ -251,7 +243,7 @@
     }
 
     function atualizarPainel(mapaSelecionado) {
-      let filtrados = mapaSelecionado === "todos"
+      const filtrados = mapaSelecionado === "todos"
         ? dadosGlobais
         : dadosGlobais.filter(d => (d.Setor || d.setor) === mapaSelecionado);
 
@@ -263,10 +255,7 @@
         type: "doughnut",
         data: {
           labels: ["Encontrado", "Não encontrado"],
-          datasets: [{
-            data: [encontrados, naoEncontrados],
-            backgroundColor: ["#4caf50", "#f44336"]
-          }]
+          datasets: [{ data: [encontrados, naoEncontrados], backgroundColor: ["#4caf50", "#f44336"] }]
         },
         options: { plugins: { legend: { position: "bottom" } } }
       });
@@ -332,10 +321,8 @@
     function gerarGraficoCiclos(ciclos) {
       if (graficoCiclos) graficoCiclos.destroy();
       if (ciclos.length === 0) return;
-
       const labels = ciclos.map((c, i) => `Ciclo ${i + 1}`);
       const valores = ciclos.map(c => c.duracaoDias);
-
       graficoCiclos = new Chart(document.getElementById("graficoCiclos"), {
         type: "bar",
         data: {
@@ -343,10 +330,7 @@
           datasets: [{ label: "Duração (dias)", data: valores, backgroundColor: "#5c3d89" }]
         },
         options: {
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: "Duração de cada ciclo (em dias)" }
-          },
+          plugins: { legend: { display: false }, title: { display: true, text: "Duração de cada ciclo (em dias)" } },
           scales: { y: { beginAtZero: true } }
         }
       });
@@ -372,30 +356,26 @@
         top4.map(item => `<li>🔸 <strong>${item.setor}</strong> — ${item.dias} dias</li>`).join("");
     }
 
-    function voltar() {
-      window.location.href = "admin.html";
-    }
-
-    carregarDados();
-
-    // === NOVO BOTÃO GERAR S-13 VIA WORKER ===
     document.getElementById("btnS13").addEventListener("click", async () => {
-    const ano = prompt("Informe o Ano de Serviço (ex: 2025-2026):");
-    if (!ano) return;
-  
-    try {
-      const resp = await fetch(`${workerURL}/gerar-s13?anoServico=${encodeURIComponent(ano)}`);
-      const data = await resp.json();
-  
-      if (data.status === "ok") {
-        alert(`S-13 gerado com sucesso!\nArquivo: ${data.arquivo}\n(O PDF foi salvo no Google Drive.)`);
-      } else {
-        alert(`Erro ao gerar S-13: ${data.mensagem || "Falha desconhecida."}`);
+      const ano = prompt("Informe o Ano de Serviço (ex: 2025-2026):");
+      if (!ano) return;
+      try {
+        const resp = await fetch(`${workerURL}/gerar-s13?anoServico=${encodeURIComponent(ano)}`);
+        const data = await resp.json();
+        if (data.status === "ok" && data.arquivo) {
+          alert("S-13 gerado com sucesso. O download será iniciado.");
+          window.open(data.arquivo, "_blank");
+        } else {
+          alert("Erro ao gerar S-13.");
+          console.error(data);
+        }
+      } catch (err) {
+        alert("Erro de comunicação: " + err.message);
       }
-    } catch (err) {
-      alert("Erro de comunicação com o servidor: " + err.message);
-    }
-  });
+    });
+
+    function voltar() { window.location.href = "admin.html"; }
+    carregarDados();
   </script>
 </body>
 </html>
