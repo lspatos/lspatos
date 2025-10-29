@@ -364,8 +364,12 @@
         const data = await resp.json();
         if (data.status === "ok" && data.arquivo) {
           alert("S-13 gerado com sucesso. O download será iniciado.");
-          window.open(data.arquivo, "_blank");
-        } else {
+          const link = document.createElement("a");
+          link.href = data.arquivo;
+          link.download = `S-13_${ano}.pdf`;
+          link.click();
+        }
+          else {
           alert("Erro ao gerar S-13.");
           console.error(data);
         }
