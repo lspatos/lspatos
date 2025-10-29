@@ -362,13 +362,30 @@
       try {
         const resp = await fetch(`${workerURL}/gerar-s13?anoServico=${encodeURIComponent(ano)}`);
         const data = await resp.json();
-        if (data.status === "ok" && data.arquivo) {
-          alert("S-13 gerado com sucesso. O download será iniciado.");
+        if (data.status === "ok" && data.conteudoBase64) {
+          const blob = b64ToBlob(data.conteudoBase64, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+          const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
-          link.href = data.arquivo;
-          link.download = `S-13_${ano}.pdf`;
+          link.href = url;
+          link.download = data.nome;
           link.click();
+          URL.revokeObjectURL(url);
+          alert("Arquivo S-13 (Word) gerado e baixado com sucesso.");
+        } else {
+          alert("Erro ao gerar S-13.");
+          console.error(data);
         }
+      } catch (err) {
+        alert("Erro de comunicação: " + err.message);
+      }
+    });
+    
+    function b64ToBlob(b64, mime) {
+      const byteChars = atob(b64);
+      const byteNums = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+      return new Blob([new Uint8Array(byteNums)], { type: mime });
+    }
           else {
           alert("Erro ao gerar S-13.");
           console.error(data);
