@@ -7,7 +7,6 @@ let responsavelAtual = localStorage.getItem("responsavelLS") || "";
 // ==========================
 // GERA OS ENDEREÇOS DINAMICAMENTE VIA PLANILHA
 // ==========================
-
 async function gerarEnderecos(nomeMapa) {
   const container = document.getElementById("enderecos");
   container.innerHTML = `
@@ -32,18 +31,20 @@ async function gerarEnderecos(nomeMapa) {
 
     container.innerHTML = "";
     enderecosDoMapa.forEach((r, i) => {
-      const endereco = r.Endereco || r.Endereço || "";
+      const enderecoOriginal = r.Endereco || r.Endereço || "";
       const restricao = (r.Restrico || r.Restricao || "").toUpperCase();
       const isAnc = restricao.includes("ANCI") || restricao.includes("IDOSO");
+
+      const textoEndereco = isAnc ? `IR ANCIÃO — ${enderecoOriginal}` : enderecoOriginal;
 
       const div = document.createElement("div");
       div.className = "container_end" + (isAnc ? " anciao" : "");
       div.innerHTML = `
-        <h4>${i + 1}. ${endereco}</h4>
+        <h4>${i + 1}. ${textoEndereco}</h4>
         <div class="entradas">
-          <button onclick="handleSubmit('Encontrado', '${nomeMapa}', \`${endereco}\`)" class="btn-verde">✔ Encontrado</button>
-          <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', \`${endereco}\`)" class="btn-vermelho">✖ Não encontrado</button>
-          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank">
+          <button onclick="handleSubmit('Encontrado', '${nomeMapa}', \`${enderecoOriginal}\`)" class="btn-verde">✔ Encontrado</button>
+          <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', \`${enderecoOriginal}\`)" class="btn-vermelho">✖ Não encontrado</button>
+          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoOriginal)}" target="_blank">
             <button class="btn-endereco">🗺 Maps</button>
           </a>
         </div>
@@ -57,7 +58,9 @@ async function gerarEnderecos(nomeMapa) {
   }
 }
 
-// ✅ ENVIO PARA GOOGLE SHEETS (VIA PROXY)
+// ==========================
+// ENVIO PARA GOOGLE SHEETS
+// ==========================
 async function handleSubmit(status, setor, endereco) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
@@ -99,7 +102,9 @@ async function handleSubmit(status, setor, endereco) {
   }
 }
 
+// ==========================
 // TOAST DE FEEDBACK
+// ==========================
 let globalToast;
 function showToast(msg) {
   if (!globalToast) {
@@ -124,7 +129,9 @@ function showToast(msg) {
   }, 3000);
 }
 
-// MODAL DE IDENTIFICAÇÃO COM EXPIRAÇÃO DE 4 HORAS
+// ==========================
+// MODAL DE IDENTIFICAÇÃO (expira a cada 4h)
+// ==========================
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("identificacaoModal");
   const btnConfirmar = document.getElementById("confirmarResponsavel");
@@ -155,7 +162,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// CSS INLINE DO SPINNER
+// ==========================
+// CSS DO SPINNER (inline)
+// ==========================
 const spinnerStyle = document.createElement("style");
 spinnerStyle.innerHTML = `
 .spinner {
