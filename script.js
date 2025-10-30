@@ -240,16 +240,22 @@ function showToast(msg) {
   }, 3000);
 }
 
-// MODAL DE IDENTIFICAÇÃO
+// MODAL DE IDENTIFICAÇÃO COM EXPIRAÇÃO DE 4 HORAS
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("identificacaoModal");
   const btnConfirmar = document.getElementById("confirmarResponsavel");
   const select = document.getElementById("responsavelSelect");
 
-  if (!responsavelAtual) {
+  const agora = Date.now();
+  const ultimaHora = parseInt(localStorage.getItem("responsavelHora") || "0");
+  const responsavelSalvo = localStorage.getItem("responsavelLS") || "";
+  const quatroHoras = 4 * 60 * 60 * 1000;
+
+  if (!responsavelSalvo || agora - ultimaHora > quatroHoras) {
     modal.style.display = "flex";
   } else {
     modal.style.display = "none";
+    responsavelAtual = responsavelSalvo;
   }
 
   btnConfirmar.addEventListener("click", () => {
@@ -259,6 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     localStorage.setItem("responsavelLS", nome);
+    localStorage.setItem("responsavelHora", Date.now());
     responsavelAtual = nome;
     modal.style.display = "none";
   });
