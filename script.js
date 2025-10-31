@@ -5,7 +5,7 @@ const proxyURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
 let responsavelAtual = localStorage.getItem("responsavelLS") || "";
 
 // ==========================
-// GERA OS ENDEREÇOS DINAMICAMENTE VIA PLANILHA
+// GERA OS ENDEREÇOS DINAMICAMENTE VIA PLANILHA + TEMPO DE VISITA
 // ==========================
 async function gerarEnderecos(nomeMapa) {
   const container = document.getElementById("enderecos");
@@ -17,30 +17,67 @@ async function gerarEnderecos(nomeMapa) {
   `;
 
   try {
-    const res = await fetch(`${proxyURL}?acao=read&aba=mapas`);
-    const dados = await res.json();
+    // 🔹 Executa as duas chamadas em paralelo
+    const [resMapas, resHistorico] = await Promise.all([
+      fetch(`${proxyURL}?acao=read&aba=mapas`),
+      fetch(`${proxyURL}?acao=read&aba=Respostas`)
+    ]);
 
-    if (!dados || !dados.registros) throw new Error("Dados inválidos");
+    const [dadosMapas, dadosHistorico] = await Promise.all([
+      resMapas.json(),
+      resHistorico.json()
+    ]);
 
-    const enderecosDoMapa = dados.registros.filter(r => (r.Mapa || "").trim() === nomeMapa);
+    if (!dadosMapas?.registros) throw new Error("Dados inválidos");
+
+    const enderecosDoMapa = dadosMapas.registros.filter(
+      r => (r.Mapa || "").trim() === nomeMapa
+    );
 
     if (enderecosDoMapa.length === 0) {
       container.innerHTML = "<p style='text-align:center;'>Nenhum endereço cadastrado para este mapa.</p>";
       return;
     }
 
+    const respostas = dadosHistorico.registros || [];
     container.innerHTML = "";
+
     enderecosDoMapa.forEach((r, i) => {
       const enderecoOriginal = r.Endereco || r.Endereço || "";
       const restricao = (r.Restrico || r.Restricao || "").toUpperCase();
       const isAnc = restricao.includes("ANCI") || restricao.includes("IDOSO");
-
       const textoEndereco = isAnc ? `IR ANCIÃO — ${enderecoOriginal}` : enderecoOriginal;
+
+      // 🔹 Busca última visita (filtragem local)
+      const historicoEndereco = respostas
+        .filter(v =>
+          (v.Endereco || v.Endereço) === enderecoOriginal &&
+          (v.Setor || v.setor) === nomeMapa
+        )
+        .sort((a, b) => new Date(b["Data e Hora"]) - new Date(a["Data e Hora"]));
+
+      let diasDesde = null;
+      if (historicoEndereco.length > 0) {
+        const ultimaData = new Date(historicoEndereco[0]["Data e Hora"]);
+        const diffMs = Date.now() - ultimaData.getTime();
+        diasDesde = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      }
+
+      // 🔹 Define cor conforme tempo
+      let corTexto = "#555";
+      if (diasDesde !== null) {
+        if (diasDesde > 30) corTexto = isAnc ? "#ffe4e1" : "#e53935"; // vermelho claro em ancião
+        else if (diasDesde >= 15) corTexto = isAnc ? "#fff3cd" : "#f9a825"; // amarelo claro em ancião
+        else corTexto = isAnc ? "#c8e6c9" : "#388e3c"; // verde claro em ancião
+      }
 
       const div = document.createElement("div");
       div.className = "container_end" + (isAnc ? " anciao" : "");
       div.innerHTML = `
         <h4>${i + 1}. ${textoEndereco}</h4>
+        <p style="font-size:13px; font-weight:500; color:${corTexto};">
+          ⏱ Última visita: ${diasDesde === null ? "Sem registro" : `${diasDesde} dia${diasDesde !== 1 ? "s" : ""} atrás`}
+        </p>
         <div class="entradas">
           <button onclick="handleSubmit('Encontrado', '${nomeMapa}', \`${enderecoOriginal}\`)" class="btn-verde">✔ Encontrado</button>
           <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', \`${enderecoOriginal}\`)" class="btn-vermelho">✖ Não encontrado</button>
@@ -51,7 +88,6 @@ async function gerarEnderecos(nomeMapa) {
       `;
       container.appendChild(div);
     });
-
   } catch (err) {
     console.error("Erro ao carregar endereços:", err);
     container.innerHTML = "<p style='text-align:center;'>❌ Erro ao carregar endereços.</p>";
