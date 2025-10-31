@@ -146,7 +146,7 @@
     }
     #btnS13 {
       display: block;
-      margin: 0 auto;
+      margin: 0 auto 25px auto;
       background-color: #5a2d82;
       color: #fff;
       border: none;
@@ -172,7 +172,11 @@
     <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
   </div>
 
+  <!-- Botão e barra de progresso -->
   <button id="btnS13">📄 Gerar S-13</button>
+  <div id="progressoS13" style="display:none; width:100%; max-width:300px; margin:10px auto;">
+    <div id="barraS13" style="height:8px; background:#5c3d89; width:0%; transition:width 0.3s;"></div>
+  </div>
 
   <div id="mapasAntigos">
     <h3>🕒 Mapas com mais tempo sem atualização</h3>
@@ -196,203 +200,217 @@
   <div id="tabela"></div>
 
 <script>
-  const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev";
-  const token = new URLSearchParams(location.search).get("token");
+const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev";
+const token = new URLSearchParams(location.search).get("token");
 
-  if (!token) {
-    document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;'>Acesso negado. Faça login pelo admin.</h3>";
-    throw new Error("Token ausente");
-  }
+if (!token) {
+  document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;'>Acesso negado. Faça login pelo admin.</h3>";
+  throw new Error("Token ausente");
+}
 
-  let dadosGlobais = [];
-  let graficoPizza, graficoCiclos;
+let dadosGlobais = [];
+let graficoPizza, graficoCiclos;
 
-  async function carregarDados() {
-    try {
-      const res = await fetch(`${workerURL}?acao=read&aba=Respostas`, {
-        headers: { "x-auth-token": token }
-      });
-      const dados = await res.json();
-      if (dados.erro && dados.erro.includes("Sessão")) {
-        alert("Sessão expirada. Faça login novamente.");
-        window.location.href = "admin.html";
-        return;
-      }
-      dadosGlobais = dados.registros || [];
-      document.getElementById("status").style.display = "none";
-      preencherFiltro();
-      atualizarPainel("todos");
-      calcularIndicadores();
-      mostrarMapasAntigos();
-    } catch (err) {
-      console.error("Erro:", err);
-      document.getElementById("status").textContent = "❌ Erro ao carregar dados.";
+async function carregarDados() {
+  try {
+    const res = await fetch(`${workerURL}?acao=read&aba=Respostas`, { headers: { "x-auth-token": token } });
+    const dados = await res.json();
+    if (dados.erro && dados.erro.includes("Sessão")) {
+      alert("Sessão expirada. Faça login novamente.");
+      window.location.href = "admin.html";
+      return;
     }
+    dadosGlobais = dados.registros || [];
+    document.getElementById("status").style.display = "none";
+    preencherFiltro();
+    atualizarPainel("todos");
+    calcularIndicadores();
+    mostrarMapasAntigos();
+  } catch (err) {
+    console.error("Erro:", err);
+    document.getElementById("status").textContent = "❌ Erro ao carregar dados.";
   }
+}
 
-  function preencherFiltro() {
-    const filtro = document.getElementById("filtroMapa");
-    const mapas = [...new Set(dadosGlobais.map(d => d.Setor || d.setor))].sort();
-    mapas.forEach(mapa => {
-      const opt = document.createElement("option");
-      opt.value = mapa;
-      opt.textContent = mapa;
-      filtro.appendChild(opt);
-    });
-    filtro.addEventListener("change", e => atualizarPainel(e.target.value));
-  }
+function preencherFiltro() {
+  const filtro = document.getElementById("filtroMapa");
+  const mapas = [...new Set(dadosGlobais.map(d => d.Setor || d.setor))].sort();
+  mapas.forEach(mapa => {
+    const opt = document.createElement("option");
+    opt.value = mapa;
+    opt.textContent = mapa;
+    filtro.appendChild(opt);
+  });
+  filtro.addEventListener("change", e => atualizarPainel(e.target.value));
+}
 
-  function atualizarPainel(mapaSelecionado) {
-    const filtrados = mapaSelecionado === "todos"
-      ? dadosGlobais
-      : dadosGlobais.filter(d => (d.Setor || d.setor) === mapaSelecionado);
+function atualizarPainel(mapaSelecionado) {
+  const filtrados = mapaSelecionado === "todos"
+    ? dadosGlobais
+    : dadosGlobais.filter(d => (d.Setor || d.setor) === mapaSelecionado);
 
-    const encontrados = filtrados.filter(d => (d.Status || d.status) === "Encontrado").length;
-    const naoEncontrados = filtrados.filter(d => (d.Status || d.status) === "Não encontrado").length;
+  const encontrados = filtrados.filter(d => (d.Status || d.status) === "Encontrado").length;
+  const naoEncontrados = filtrados.filter(d => (d.Status || d.status) === "Não encontrado").length;
 
-    if (graficoPizza) graficoPizza.destroy();
-    graficoPizza = new Chart(document.getElementById("grafico"), {
-      type: "doughnut",
-      data: {
-        labels: ["Encontrado", "Não encontrado"],
-        datasets: [{ data: [encontrados, naoEncontrados], backgroundColor: ["#4caf50", "#f44336"] }]
-      },
-      options: { plugins: { legend: { position: "bottom" } } }
-    });
-
-    const linhas = filtrados.map(d => `
-      <tr>
-        <td>${d["Data e Hora"] || d.dataHora}</td>
-        <td>${d.Setor || d.setor}</td>
-        <td>${d.Endereco || d.Endereço || d.endereco}</td>
-        <td>${d.Status || d.status}</td>
-      </tr>`).join("");
-
-    document.getElementById("tabela").innerHTML = `
-      <table>
-        <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
-        ${linhas || "<tr><td colspan='4'>Nenhum registro encontrado.</td></tr>"}
-      </table>`;
-  }
-
-  function calcularIndicadores() {
-    const registros = dadosGlobais.map(d => ({
-      setor: d.Setor || d.setor,
-      data: new Date(d["Data e Hora"] || d.dataHora)
-    })).sort((a, b) => a.data - b.data);
-
-    const todosMapas = [...new Set(registros.map(r => r.setor))];
-    let visitados = new Set();
-    let inicioCiclo = registros[0]?.data;
-    const ciclos = [];
-
-    for (let r of registros) {
-      visitados.add(r.setor);
-      if (visitados.size === todosMapas.length) {
-        const fim = r.data;
-        const duracaoDias = Math.round((fim - inicioCiclo) / (1000 * 60 * 60 * 24));
-        ciclos.push({ inicio: inicioCiclo, fim, duracaoDias });
-        visitados = new Set();
-        inicioCiclo = r.data;
-      }
-    }
-
-    const ultimo = ciclos[ciclos.length - 1];
-    const media = ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length || 0;
-    const hoje = new Date();
-    const diasDesde = ultimo ? Math.round((hoje - ultimo.fim) / (1000 * 60 * 60 * 24)) : "-";
-    const cicloAtualDias = Math.round((hoje - inicioCiclo) / (1000 * 60 * 60 * 24));
-
-    document.getElementById("ultimoCiclo").textContent = ultimo ? `${ultimo.duracaoDias} dias` : "-";
-    document.getElementById("mediaCiclos").textContent = `${media.toFixed(1)} dias`;
-    document.getElementById("diasDesde").textContent = `${diasDesde} dias`;
-
-    const statusCiclo = document.getElementById("statusCiclo");
-    if (cicloAtualDias > media && ciclos.length > 0) {
-      statusCiclo.innerHTML = `<span class="alerta">Atrasado (${cicloAtualDias} dias)</span>`;
-    } else {
-      statusCiclo.textContent = `Dentro da média (${cicloAtualDias} dias)`;
-      statusCiclo.style.color = "#4caf50";
-    }
-
-    gerarGraficoCiclos(ciclos);
-  }
-
-  function gerarGraficoCiclos(ciclos) {
-    if (graficoCiclos) graficoCiclos.destroy();
-    if (ciclos.length === 0) return;
-    const labels = ciclos.map((c, i) => `Ciclo ${i + 1}`);
-    const valores = ciclos.map(c => c.duracaoDias);
-    graficoCiclos = new Chart(document.getElementById("graficoCiclos"), {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [{ label: "Duração (dias)", data: valores, backgroundColor: "#5c3d89" }]
-      },
-      options: {
-        plugins: { legend: { display: false }, title: { display: true, text: "Duração de cada ciclo (em dias)" } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
-
-  function mostrarMapasAntigos() {
-    const registrosPorMapa = {};
-    dadosGlobais.forEach(d => {
-      const setor = d.Setor || d.setor;
-      const data = new Date(d["Data e Hora"] || d.dataHora);
-      if (!registrosPorMapa[setor] || data > registrosPorMapa[setor]) registrosPorMapa[setor] = data;
-    });
-
-    const hoje = new Date();
-    const lista = Object.entries(registrosPorMapa).map(([setor, ultimaData]) => ({
-      setor,
-      dias: Math.round((hoje - ultimaData) / (1000 * 60 * 60 * 24))
-    }));
-
-    lista.sort((a, b) => b.dias - a.dias);
-    const top4 = lista.slice(0, 4);
-    document.getElementById("listaAntigos").innerHTML =
-      top4.map(item => `<li>🔸 <strong>${item.setor}</strong> — ${item.dias} dias</li>`).join("");
-  }
-
-  // === CORRIGIDO: Gerar e baixar DOCX local ===
-  document.getElementById("btnS13").addEventListener("click", async () => {
-    const ano = prompt("Informe o Ano de Serviço (ex: 2025-2026):");
-    if (!ano) return;
-    try {
-      const resp = await fetch(`${workerURL}/gerar-s13?anoServico=${encodeURIComponent(ano)}`);
-      const data = await resp.json();
-      if (data.status === "ok" && data.conteudoBase64) {
-        const blob = b64ToBlob(data.conteudoBase64, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = data.nome;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        alert("Arquivo S-13 (Word) gerado e baixado com sucesso.");
-      } else {
-        alert("Erro ao gerar S-13.");
-        console.error(data);
-      }
-    } catch (err) {
-      alert("Erro de comunicação: " + err.message);
-    }
+  if (graficoPizza) graficoPizza.destroy();
+  graficoPizza = new Chart(document.getElementById("grafico"), {
+    type: "doughnut",
+    data: {
+      labels: ["Encontrado", "Não encontrado"],
+      datasets: [{ data: [encontrados, naoEncontrados], backgroundColor: ["#4caf50", "#f44336"] }]
+    },
+    options: { plugins: { legend: { position: "bottom" } } }
   });
 
-  function b64ToBlob(b64, mime) {
-    const byteChars = atob(b64);
-    const byteNums = new Array(byteChars.length);
-    for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
-    return new Blob([new Uint8Array(byteNums)], { type: mime });
+  const linhas = filtrados.map(d => `
+    <tr>
+      <td>${d["Data e Hora"] || d.dataHora}</td>
+      <td>${d.Setor || d.setor}</td>
+      <td>${d.Endereco || d.Endereço || d.endereco}</td>
+      <td>${d.Status || d.status}</td>
+    </tr>`).join("");
+
+  document.getElementById("tabela").innerHTML = `
+    <table>
+      <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
+      ${linhas || "<tr><td colspan='4'>Nenhum registro encontrado.</td></tr>"}
+    </table>`;
+}
+
+function calcularIndicadores() {
+  const registros = dadosGlobais.map(d => ({
+    setor: d.Setor || d.setor,
+    data: new Date(d["Data e Hora"] || d.dataHora)
+  })).sort((a, b) => a.data - b.data);
+
+  const todosMapas = [...new Set(registros.map(r => r.setor))];
+  let visitados = new Set();
+  let inicioCiclo = registros[0]?.data;
+  const ciclos = [];
+
+  for (let r of registros) {
+    visitados.add(r.setor);
+    if (visitados.size === todosMapas.length) {
+      const fim = r.data;
+      const duracaoDias = Math.round((fim - inicioCiclo) / (1000 * 60 * 60 * 24));
+      ciclos.push({ inicio: inicioCiclo, fim, duracaoDias });
+      visitados = new Set();
+      inicioCiclo = r.data;
+    }
   }
 
-  function voltar() { window.location.href = "admin.html"; }
+  const ultimo = ciclos[ciclos.length - 1];
+  const media = ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length || 0;
+  const hoje = new Date();
+  const diasDesde = ultimo ? Math.round((hoje - ultimo.fim) / (1000 * 60 * 60 * 24)) : "-";
+  const cicloAtualDias = Math.round((hoje - inicioCiclo) / (1000 * 60 * 60 * 24));
 
-  carregarDados();
+  document.getElementById("ultimoCiclo").textContent = ultimo ? `${ultimo.duracaoDias} dias` : "-";
+  document.getElementById("mediaCiclos").textContent = `${media.toFixed(1)} dias`;
+  document.getElementById("diasDesde").textContent = `${diasDesde} dias`;
+
+  const statusCiclo = document.getElementById("statusCiclo");
+  if (cicloAtualDias > media && ciclos.length > 0) {
+    statusCiclo.innerHTML = `<span class="alerta">Atrasado (${cicloAtualDias} dias)</span>`;
+  } else {
+    statusCiclo.textContent = `Dentro da média (${cicloAtualDias} dias)`;
+    statusCiclo.style.color = "#4caf50";
+  }
+
+  gerarGraficoCiclos(ciclos);
+}
+
+function gerarGraficoCiclos(ciclos) {
+  if (graficoCiclos) graficoCiclos.destroy();
+  if (ciclos.length === 0) return;
+  const labels = ciclos.map((c, i) => `Ciclo ${i + 1}`);
+  const valores = ciclos.map(c => c.duracaoDias);
+  graficoCiclos = new Chart(document.getElementById("graficoCiclos"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Duração (dias)", data: valores, backgroundColor: "#5c3d89" }]
+    },
+    options: {
+      plugins: { legend: { display: false }, title: { display: true, text: "Duração de cada ciclo (em dias)" } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+function mostrarMapasAntigos() {
+  const registrosPorMapa = {};
+  dadosGlobais.forEach(d => {
+    const setor = d.Setor || d.setor;
+    const data = new Date(d["Data e Hora"] || d.dataHora);
+    if (!registrosPorMapa[setor] || data > registrosPorMapa[setor]) registrosPorMapa[setor] = data;
+  });
+
+  const hoje = new Date();
+  const lista = Object.entries(registrosPorMapa).map(([setor, ultimaData]) => ({
+    setor,
+    dias: Math.round((hoje - ultimaData) / (1000 * 60 * 60 * 24))
+  }));
+
+  lista.sort((a, b) => b.dias - a.dias);
+  const top4 = lista.slice(0, 4);
+  document.getElementById("listaAntigos").innerHTML =
+    top4.map(item => `<li>🔸 <strong>${item.setor}</strong> — ${item.dias} dias</li>`).join("");
+}
+
+// === Gerar S13 com barra de progresso ===
+document.getElementById("btnS13").addEventListener("click", async () => {
+  const ano = prompt("Informe o Ano de Serviço (ex: 2025-2026):");
+  if (!ano) return;
+
+  const barra = document.getElementById("barraS13");
+  const container = document.getElementById("progressoS13");
+  container.style.display = "block";
+  barra.style.width = "0%";
+
+  let progresso = 0;
+  const anim = setInterval(() => {
+    progresso = Math.min(progresso + 5, 95);
+    barra.style.width = progresso + "%";
+  }, 400);
+
+  try {
+    const resp = await fetch(`${workerURL}/gerar-s13?anoServico=${encodeURIComponent(ano)}`);
+    const data = await resp.json();
+    clearInterval(anim);
+    barra.style.width = "100%";
+
+    if (data.status === "ok" && data.conteudoBase64) {
+      const blob = b64ToBlob(data.conteudoBase64, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = data.nome;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      alert("✅ S-13 gerado e baixado com sucesso.");
+    } else {
+      alert("⚠ Erro ao gerar S-13.");
+    }
+  } catch (err) {
+    clearInterval(anim);
+    barra.style.background = "#e53935";
+    alert("❌ Erro de comunicação: " + err.message);
+  }
+});
+
+function b64ToBlob(b64, mime) {
+  const byteChars = atob(b64);
+  const byteNums = new Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+  return new Blob([new Uint8Array(byteNums)], { type: mime });
+}
+
+function voltar() { window.location.href = "admin.html"; }
+
+carregarDados();
 </script>
 </body>
 </html>
