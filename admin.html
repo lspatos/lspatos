@@ -138,6 +138,14 @@
 <script>
   const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
   let token = sessionStorage.getItem("authToken");
+  let registrosAtuais = [];
+
+  function escapeHTML(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
 
   // === Login ===
   async function login() {
@@ -190,15 +198,18 @@
 
       const tbody = document.getElementById("tabelaMapas");
       tbody.innerHTML = "";
-      dados.registros.forEach(item => {
+      // Guarda os registros num array global e referencia por índice,
+      // em vez de montar strings de JS com os dados (evita quebrar com aspas nos endereços)
+      registrosAtuais = dados.registros || [];
+      registrosAtuais.forEach((item, i) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${item.ID || ""}</td>
-          <td>${item.Mapa || ""}</td>
-          <td>${item.Endereco || ""}</td>
-          <td>${item.Restrico || item.Restricão || item.Restricao || ""}</td>
+          <td>${escapeHTML(item.ID || "")}</td>
+          <td>${escapeHTML(item.Mapa || "")}</td>
+          <td>${escapeHTML(item.Endereco || "")}</td>
+          <td>${escapeHTML(item.Restricao || "")}</td>
           <td>
-            <button class="btn btn-sm btn-warning" onclick="editar('${item.ID}','${item.Mapa}','${item.Endereco}','${item.Restricao}')">✏️</button>
+            <button class="btn btn-sm btn-warning" onclick="editar(${i})">✏️</button>
             <button class="btn btn-sm btn-danger" onclick="excluir('${item.ID}')">🗑️</button>
           </td>`;
         tbody.appendChild(tr);
@@ -256,11 +267,13 @@
     }
   }
 
-  function editar(id, mapa, endereco, restricao) {
-    document.getElementById("id").value = id;
-    document.getElementById("mapa").value = mapa;
-    document.getElementById("endereco").value = endereco;
-    document.getElementById("restricao").value = restricao;
+  function editar(indice) {
+    const item = registrosAtuais[indice];
+    if (!item) return;
+    document.getElementById("id").value = item.ID || "";
+    document.getElementById("mapa").value = item.Mapa || "";
+    document.getElementById("endereco").value = item.Endereco || "";
+    document.getElementById("restricao").value = item.Restricao || "";
   }
 
   function limpar() {
@@ -276,12 +289,14 @@
   // === Navegação ===
   function abrirPainel() {
     if (!token) return alert("Sessão expirada.");
-    window.open(`painel.html?token=${encodeURIComponent(token)}`, "_blank");
+    // O token já está no sessionStorage; painel.html lê de lá diretamente
+    // (sessionStorage é herdado por abas abertas via window.open na mesma origem)
+    window.open("painel.html", "_blank");
   }
 
   function abrirRelatorio() {
     if (!token) return alert("Sessão expirada.");
-    window.open(`relatorio.html?token=${encodeURIComponent(token)}`, "_blank");
+    window.open("relatorio.html", "_blank");
   }
 
   // === Sessão Persistente ===
