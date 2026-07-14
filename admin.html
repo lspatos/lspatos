@@ -144,6 +144,12 @@
     </div>
 
     <div class="secao-titulo-tabela">
+      <h2>⚠ Endereços reportados</h2>
+      <span id="contagemAlertas" style="font-size:13px; color:var(--cinza-400); font-family:var(--fonte-dado);"></span>
+    </div>
+    <div id="listaAlertas" style="margin-bottom:10px;"></div>
+
+    <div class="secao-titulo-tabela">
       <h2>Territórios cadastrados</h2>
       <span id="contagemRegistros" style="font-size:13px; color:var(--cinza-400); font-family:var(--fonte-dado);"></span>
     </div>
@@ -163,6 +169,133 @@
       </table>
     </div>
   </div>
+
+<style>
+  .cartao-alerta {
+    background: #fff;
+    border-left: 5px solid var(--vermelho);
+    border-radius: var(--raio-md);
+    box-shadow: var(--sombra-card);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .cartao-alerta.resolvido-marcado { border-left-color: var(--ambar); }
+  .cartao-alerta .topo-alerta {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px;
+  }
+  .cartao-alerta h4 { font-size: 14.5px; }
+  .cartao-alerta .tag-mapa {
+    font-size: 11.5px; color: var(--cinza-400); font-family: var(--fonte-dado);
+  }
+  .cartao-alerta .selo-contagem {
+    flex-shrink: 0;
+    background: var(--vermelho); color: #fff;
+    font-size: 12px; font-weight: 700;
+    padding: 3px 9px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .cartao-alerta.resolvido-marcado .selo-contagem { background: var(--ambar); }
+  .cartao-alerta ul { list-style: none; padding: 0; margin: 8px 0; }
+  .cartao-alerta li { font-size: 13px; color: var(--cinza-700); padding: 3px 0; }
+  .cartao-alerta .acoes-alerta { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .cartao-alerta .acoes-alerta .btn { font-size: 13px; padding: 9px 12px; min-height: 40px; }
+  .sem-alertas { color: var(--cinza-400); font-size: 14px; padding: 10px 4px; }
+</style>
+
+<script>
+  let alertasAgrupados = [];
+
+  async function carregarAlertas() {
+    const container = document.getElementById("listaAlertas");
+    try {
+      const res = await fetch(`${workerURL}?acao=read&aba=Alertas`, { headers: { "x-auth-token": token } });
+      const dados = await res.json();
+
+      if (dados.erro) {
+        // Aba "Alertas" ainda não existe (nenhum aviso foi feito ainda) - normal, não é erro real
+        container.innerHTML = "<p class='sem-alertas'>Nenhum aviso de mudança/falecimento registrado ainda.</p>";
+        document.getElementById("contagemAlertas").textContent = "";
+        return;
+      }
+
+      const linhas = dados.registros || [];
+      const grupos = {};
+      linhas.forEach(l => {
+        const mapa = l.Mapa || "";
+        const endereco = l.Endereco || "";
+        const chave = mapa + "|||" + endereco;
+        if (!grupos[chave]) grupos[chave] = { mapa, endereco, itens: [] };
+        grupos[chave].itens.push({
+          responsavel: (l.Responsavel || "").trim(),
+          motivo: l.Motivo || "",
+          data: l.Timestamp || ""
+        });
+      });
+
+      alertasAgrupados = Object.values(grupos).map(g => {
+        const distintos = new Set(g.itens.map(i => i.responsavel.toLowerCase()));
+        const registroMapa = registrosAtuais.find(r => r.Mapa === g.mapa && r.Endereco === g.endereco);
+        const restricaoAtual = (registroMapa?.Restricao || "").toUpperCase();
+        const marcado = restricaoAtual.includes("EM ANALISE") || restricaoAtual.includes("EM ANÁLISE");
+        return { ...g, totalDistintos: distintos.size, marcado, idMapa: registroMapa?.ID || null };
+      }).sort((a, b) => b.totalDistintos - a.totalDistintos);
+
+      document.getElementById("contagemAlertas").textContent = `${alertasAgrupados.length} endereço(s)`;
+
+      if (alertasAgrupados.length === 0) {
+        container.innerHTML = "<p class='sem-alertas'>Nenhum aviso de mudança/falecimento registrado ainda.</p>";
+        return;
+      }
+
+      container.innerHTML = alertasAgrupados.map((g, i) => `
+        <div class="cartao-alerta ${g.marcado ? 'resolvido-marcado' : ''}">
+          <div class="topo-alerta">
+            <div>
+              <h4>${escapeHTML(g.endereco)}</h4>
+              <span class="tag-mapa">${escapeHTML(g.mapa)}</span>
+            </div>
+            <span class="selo-contagem">${g.totalDistintos} aviso${g.totalDistintos !== 1 ? "s" : ""} ${g.marcado ? "· marcado" : ""}</span>
+          </div>
+          <ul>
+            ${g.itens.map(it => `<li>• <strong>${escapeHTML(it.responsavel || "Não identificado")}</strong> — ${escapeHTML(it.motivo)}</li>`).join("")}
+          </ul>
+          <div class="acoes-alerta">
+            <button class="btn btn-neutro" onclick="limparAlertasEndereco(${i})">✔ Não é mudança, manter endereço</button>
+            ${g.idMapa ? `<button class="btn btn-perigo" onclick="excluirDaAlerta(${i})">🗑 Excluir endereço</button>` : ""}
+          </div>
+        </div>
+      `).join("");
+    } catch (err) {
+      console.error(err);
+      container.innerHTML = "<p class='sem-alertas'>❌ Erro ao carregar alertas.</p>";
+    }
+  }
+
+  async function limparAlertasEndereco(indice) {
+    const g = alertasAgrupados[indice];
+    if (!confirm(`Descartar os avisos de "${g.endereco}" e manter o endereço normalmente?`)) return;
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "limpar-alertas", mapa: g.mapa, endereco: g.endereco })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      await carregarMapas();
+      await carregarAlertas();
+    } catch {
+      alert("Erro ao limpar alertas.");
+    }
+  }
+
+  async function excluirDaAlerta(indice) {
+    const g = alertasAgrupados[indice];
+    if (!g.idMapa) return;
+    await excluir(g.idMapa);
+    await carregarAlertas();
+  }
+</script>
 
 <script>
   const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
@@ -206,7 +339,7 @@
   function iniciarPainel() {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("painel").style.display = "block";
-    carregarMapas();
+    carregarMapas().then(carregarAlertas);
   }
 
   function logout() {
