@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#5c3d89" />
   <link rel="icon" href="fav_icon.ico" type="image/x-icon">
-  <title>S-13 LS MAPAS</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>S-13 — LS Mapas</title>
+  <link rel="stylesheet" href="style.css">
 
   <style>
     @page {
@@ -14,7 +17,6 @@
     }
 
     html, body {
-      font-family: "Montserrat", sans-serif;
       background: #f8f7fb;
       color: #333;
       margin: 0;
@@ -25,32 +27,15 @@
       position: sticky;
       top: 0;
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
       align-items: center;
       gap: 10px;
-      padding: 10px;
+      padding: 12px;
       background: #fff;
-      border-bottom: 2px solid #e0dce9;
+      border-bottom: 2px solid var(--roxo-100);
       z-index: 100;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    }
-
-    .btn-custom {
-      background-color: #5a2d82;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .btn-custom:hover { background-color: #452160; }
-
-    input#anoServico {
-      padding: 8px 10px;
-      border: 1px solid #5a2d82;
-      border-radius: 6px;
-      font-size: 14px;
     }
 
     #avisos {
@@ -59,15 +44,16 @@
       padding: 0 15px;
     }
     #avisos .aviso {
-      background: #fff3cd;
-      border-left: 4px solid #f9a825;
+      background: var(--ambar-bg);
+      border-left: 4px solid var(--ambar);
+      color: #7A5417;
       padding: 10px 14px;
       border-radius: 4px;
       font-size: 13px;
       margin-bottom: 8px;
     }
 
-    /* ===== Folha S-13 (o que realmente vira PDF) ===== */
+    /* ===== Folha S-13 (o que realmente vira PDF) — mantém fidelidade ao formulário oficial ===== */
     #folha {
       background: #fff;
       width: 210mm;
@@ -85,6 +71,7 @@
       font-size: 14pt;
       font-weight: bold;
       margin: 0 0 14px 0;
+      color: #000;
     }
 
     .linha-ano {
@@ -146,11 +133,11 @@
 </head>
 <body>
   <div class="top-bar">
-    <button class="btn-custom" onclick="voltar()">⬅ Voltar ao Admin</button>
-    <label for="anoServico" style="font-size:14px;">Ano de Serviço:</label>
-    <input type="text" id="anoServico" placeholder="2025-2026" value="">
-    <button class="btn-custom" onclick="gerar()">🔄 Gerar</button>
-    <button class="btn-custom" onclick="window.print()">📄 Imprimir / Salvar PDF</button>
+    <button class="btn btn-neutro" onclick="voltar()">⬅ Voltar ao Admin</button>
+    <label for="anoServico" style="font-size:14px; font-weight:600;">Ano de Serviço:</label>
+    <input type="text" id="anoServico" placeholder="2025-2026" value="" style="width:140px;">
+    <button class="btn btn-secundario" onclick="gerar()">🔄 Gerar</button>
+    <button class="btn btn-primario" onclick="window.print()">📄 Imprimir / Salvar PDF</button>
   </div>
 
   <div id="avisos"></div>
