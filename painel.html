@@ -209,18 +209,27 @@ if (!token) {
 }
 
 let dadosGlobais = [];
+let mapasAtivos = []; // lista real de territórios cadastrados hoje (aba "mapas")
 let graficoPizza, graficoCiclos;
 
 async function carregarDados() {
   try {
-    const res = await fetch(`${workerURL}?acao=read&aba=Respostas`, { headers: { "x-auth-token": token } });
-    const dados = await res.json();
+    const [resRespostas, resMapas] = await Promise.all([
+      fetch(`${workerURL}?acao=read&aba=Respostas`, { headers: { "x-auth-token": token } }),
+      fetch(`${workerURL}?acao=read&aba=mapas`, { headers: { "x-auth-token": token } })
+    ]);
+    const dados = await resRespostas.json();
+    const dadosMapas = await resMapas.json();
+
     if (dados.erro && dados.erro.includes("Sessão")) {
       alert("Sessão expirada. Faça login novamente.");
       window.location.href = "admin.html";
       return;
     }
     dadosGlobais = dados.registros || [];
+    // Lista de territórios únicos que realmente existem hoje na aba "mapas"
+    mapasAtivos = [...new Set((dadosMapas.registros || []).map(r => (r.Mapa || "").trim()).filter(Boolean))];
+
     document.getElementById("status").style.display = "none";
     preencherFiltro();
     atualizarPainel("todos");
@@ -234,7 +243,8 @@ async function carregarDados() {
 
 function preencherFiltro() {
   const filtro = document.getElementById("filtroMapa");
-  const mapas = [...new Set(dadosGlobais.map(d => d.Setor || d.setor))].sort();
+  const mapasComHistorico = dadosGlobais.map(d => d.Setor || d.setor);
+  const mapas = [...new Set([...mapasAtivos, ...mapasComHistorico])].filter(Boolean).sort();
   mapas.forEach(mapa => {
     const opt = document.createElement("option");
     opt.value = mapa;
@@ -283,14 +293,27 @@ function calcularIndicadores() {
     data: new Date(d["Data e Hora"] || d.dataHora)
   })).sort((a, b) => a.data - b.data);
 
-  const todosMapas = [...new Set(registros.map(r => r.setor))];
+  // Usa a lista real de territórios cadastrados hoje (aba "mapas") como referência
+  // de um "ciclo completo", em vez de inferir isso do histórico de respostas
+  // (que pode ter tido mapas adicionados/removidos ao longo do tempo).
+  const totalMapasAtivos = mapasAtivos.length;
+
+  if (totalMapasAtivos === 0 || registros.length === 0) {
+    document.getElementById("ultimoCiclo").textContent = "-";
+    document.getElementById("mediaCiclos").textContent = "-";
+    document.getElementById("diasDesde").textContent = "-";
+    document.getElementById("statusCiclo").textContent = "Sem dados suficientes";
+    gerarGraficoCiclos([]);
+    return;
+  }
+
   let visitados = new Set();
-  let inicioCiclo = registros[0]?.data;
+  let inicioCiclo = registros[0].data;
   const ciclos = [];
 
   for (let r of registros) {
-    visitados.add(r.setor);
-    if (visitados.size === todosMapas.length) {
+    if (mapasAtivos.includes(r.setor)) visitados.add(r.setor);
+    if (visitados.size >= totalMapasAtivos) {
       const fim = r.data;
       const duracaoDias = Math.round((fim - inicioCiclo) / (1000 * 60 * 60 * 24));
       ciclos.push({ inicio: inicioCiclo, fim, duracaoDias });
@@ -300,17 +323,20 @@ function calcularIndicadores() {
   }
 
   const ultimo = ciclos[ciclos.length - 1];
-  const media = ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length || 0;
+  const media = ciclos.length ? ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length : 0;
   const hoje = new Date();
   const diasDesde = ultimo ? Math.round((hoje - ultimo.fim) / (1000 * 60 * 60 * 24)) : "-";
   const cicloAtualDias = Math.round((hoje - inicioCiclo) / (1000 * 60 * 60 * 24));
 
   document.getElementById("ultimoCiclo").textContent = ultimo ? `${ultimo.duracaoDias} dias` : "-";
-  document.getElementById("mediaCiclos").textContent = `${media.toFixed(1)} dias`;
-  document.getElementById("diasDesde").textContent = `${diasDesde} dias`;
+  document.getElementById("mediaCiclos").textContent = ciclos.length ? `${media.toFixed(1)} dias` : "-";
+  document.getElementById("diasDesde").textContent = ultimo ? `${diasDesde} dias` : "-";
 
   const statusCiclo = document.getElementById("statusCiclo");
-  if (cicloAtualDias > media && ciclos.length > 0) {
+  if (ciclos.length === 0) {
+    statusCiclo.textContent = "Ainda no primeiro ciclo";
+    statusCiclo.style.color = "#5c3d89";
+  } else if (cicloAtualDias > media) {
     statusCiclo.innerHTML = `<span class="alerta">Atrasado (${cicloAtualDias} dias)</span>`;
   } else {
     statusCiclo.textContent = `Dentro da média (${cicloAtualDias} dias)`;
@@ -347,15 +373,29 @@ function mostrarMapasAntigos() {
   });
 
   const hoje = new Date();
-  const lista = Object.entries(registrosPorMapa).map(([setor, ultimaData]) => ({
+
+  // Mapas com pelo menos uma visita registrada
+  const comHistorico = Object.entries(registrosPorMapa).map(([setor, ultimaData]) => ({
     setor,
-    dias: Math.round((hoje - ultimaData) / (1000 * 60 * 60 * 24))
+    dias: Math.round((hoje - ultimaData) / (1000 * 60 * 60 * 24)),
+    nuncaVisitado: false
   }));
 
+  // Mapas cadastrados que NUNCA tiveram nenhuma visita registrada
+  // (antes ficavam de fora da lista, mesmo sendo os mais urgentes)
+  const semHistorico = mapasAtivos
+    .filter(m => !(m in registrosPorMapa))
+    .map(setor => ({ setor, dias: Infinity, nuncaVisitado: true }));
+
+  const lista = [...semHistorico, ...comHistorico];
   lista.sort((a, b) => b.dias - a.dias);
   const top4 = lista.slice(0, 4);
-  document.getElementById("listaAntigos").innerHTML =
-    top4.map(item => `<li>🔸 <strong>${item.setor}</strong> — ${item.dias} dias</li>`).join("");
+
+  document.getElementById("listaAntigos").innerHTML = top4.map(item =>
+    item.nuncaVisitado
+      ? `<li>🔺 <strong>${item.setor}</strong> — nunca visitado</li>`
+      : `<li>🔸 <strong>${item.setor}</strong> — ${item.dias} dias</li>`
+  ).join("");
 }
 
 // === Gerar S13 com barra de progresso ===
