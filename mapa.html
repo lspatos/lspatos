@@ -50,8 +50,8 @@
     }
     .container_end p.ultima-visita { font-size: 13px; font-weight: 600; margin: 2px 0 0 40px; }
 
-    .container_end.anciao { border-left: 5px solid var(--ambar); background: var(--ambar-bg); }
-    .container_end.anciao h4 { color: #7A5417; }
+    .container_end.restrito { border-left: 5px solid var(--vermelho); background: var(--vermelho-bg); }
+    .container_end.restrito h4 { color: #7A1F26; }
     .selo-restricao {
       display: inline-flex;
       align-items: center;
@@ -60,10 +60,90 @@
       padding: 4px 10px;
       border-radius: 20px;
       background: #fff;
-      color: #7A5417;
+      color: #7A1F26;
       font-size: 12.5px;
       font-weight: 700;
       width: fit-content;
+    }
+
+    /* Endereço marcado após 3 alertas de mudança/falecimento */
+    .container_end.em-analise {
+      background: #F1EFF4;
+      border-left: 5px solid var(--vermelho);
+      opacity: 0.72;
+    }
+    .container_end.em-analise .cabeca-endereco { opacity: .55; }
+    .container_end.em-analise h4 {
+      font-size: 12.5px;
+      color: var(--cinza-400);
+      font-weight: 500;
+      text-decoration: line-through;
+    }
+    .container_end.em-analise .ultima-visita { display: none; }
+    .badge-analise {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--vermelho);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: var(--raio-sm);
+      font-size: 13.5px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    /* Botão de alerta de mudança/falecimento - discreto, no canto do card */
+    .container_end { position: relative; }
+    .btn-alerta-mudanca {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(33,27,43,0.08);
+      color: var(--cinza-700);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-alerta-mudanca:hover { background: rgba(33,27,43,0.16); }
+
+    /* Popover de motivo do alerta */
+    .popover-alerta {
+      position: fixed;
+      inset: 0;
+      background: rgba(33,27,43,.5);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 998;
+    }
+    .popover-alerta .conteudo {
+      background: #fff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 18px 18px 0 0;
+      padding: 22px 20px 26px;
+    }
+    .popover-alerta h3 { font-size: 16px; margin-bottom: 4px; }
+    .popover-alerta p { font-size: 13px; color: var(--cinza-700); margin-bottom: 16px; }
+    .popover-alerta button.opcao {
+      display: block; width: 100%; text-align: left;
+      background: var(--roxo-50); border: none; border-radius: 10px;
+      padding: 13px 14px; margin-bottom: 8px; font-size: 14.5px; font-weight: 600;
+      color: var(--tinta); cursor: pointer;
+    }
+    .popover-alerta button.opcao:hover { background: var(--roxo-100); }
+    .popover-alerta button.cancelar {
+      display: block; width: 100%; text-align: center;
+      background: none; border: none; color: var(--cinza-400);
+      padding: 10px; margin-top: 4px; font-size: 14px; cursor: pointer;
     }
 
     .entradas { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
