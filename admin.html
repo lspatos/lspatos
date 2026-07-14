@@ -115,6 +115,7 @@
           <div class="text-center mt-4">
           <button class="btn btn-custom me-2" onclick="abrirPainel()">📊 Painel</button>
           <button class="btn btn-custom me-2" onclick="abrirRelatorio()">📂 Relatórios</button>
+          <button class="btn btn-custom me-2" onclick="abrirS13()">📄 S-13</button>
           <button class="btn btn-secondary me-2" onclick="window.location.href='index.html'">⬅ Início</button>
           <button class="btn btn-secondary" onclick="logout()">Sair</button>
         </div>
@@ -297,6 +298,11 @@
   function abrirRelatorio() {
     if (!token) return alert("Sessão expirada.");
     window.open("relatorio.html", "_blank");
+  }
+
+  function abrirS13() {
+    if (!token) return alert("Sessão expirada.");
+    window.open("s13.html", "_blank");
   }
 
   // === Sessão Persistente ===
