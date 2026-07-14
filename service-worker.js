@@ -4,8 +4,8 @@
  * lidos do Worker, pra funcionar mesmo com sinal fraco ou instável.
  */
 
-const CACHE_ESTATICO = 'ls-mapas-estatico-v1';
-const CACHE_DADOS = 'ls-mapas-dados-v1';
+const CACHE_ESTATICO = 'ls-mapas-estatico-v2';
+const CACHE_DADOS = 'ls-mapas-dados-v2';
 
 const ARQUIVOS_ESTATICOS = [
   './',
@@ -16,6 +16,7 @@ const ARQUIVOS_ESTATICOS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './ilustracao_hero.svg',
   './map_card_logo.svg',
   './home.png',
   './fav_icon.ico'
