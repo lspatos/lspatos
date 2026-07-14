@@ -1,0 +1,81 @@
+/**
+ * LS Mapas - Service Worker
+ * Cache do "esqueleto" do site (HTML/CSS/JS/ícones) + cache dos dados
+ * lidos do Worker, pra funcionar mesmo com sinal fraco ou instável.
+ */
+
+const CACHE_ESTATICO = 'ls-mapas-estatico-v1';
+const CACHE_DADOS = 'ls-mapas-dados-v1';
+
+const ARQUIVOS_ESTATICOS = [
+  './',
+  './index.html',
+  './mapa.html',
+  './style.css',
+  './script.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './map_card_logo.svg',
+  './home.png',
+  './fav_icon.ico'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_ESTATICO)
+      .then(cache => cache.addAll(ARQUIVOS_ESTATICOS))
+      .catch(err => console.warn('Falha ao pré-carregar cache estático:', err))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(nomes =>
+      Promise.all(
+        nomes
+          .filter(n => n !== CACHE_ESTATICO && n !== CACHE_DADOS)
+          .map(n => caches.delete(n))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // Só cuida de leituras (GET). Envios (POST) ficam por conta da fila do app.
+  if (req.method !== 'GET') return;
+
+  // Dados do Worker (endereços / respostas): network-first, cai pro cache se não houver sinal
+  if (url.hostname.includes('workers.dev')) {
+    event.respondWith(
+      fetch(req)
+        .then(resp => {
+          const copia = resp.clone();
+          caches.open(CACHE_DADOS).then(cache => cache.put(req, copia));
+          return resp;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Arquivos do próprio site: cache-first, atualizando em segundo plano
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      caches.match(req).then(cached => {
+        const buscaRede = fetch(req)
+          .then(resp => {
+            caches.open(CACHE_ESTATICO).then(cache => cache.put(req, resp.clone()));
+            return resp;
+          })
+          .catch(() => cached);
+        return cached || buscaRede;
+      })
+    );
+  }
+});
