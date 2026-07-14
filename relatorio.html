@@ -159,7 +159,7 @@
 
   <script>
     const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
-    const token = new URLSearchParams(location.search).get("token");
+    const token = sessionStorage.getItem("authToken");
 
     if (!token) {
       document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;margin-top:50px;'>Acesso negado. Faça login pelo admin.</h3>";
