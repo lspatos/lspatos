@@ -171,6 +171,9 @@
     <div class="card"><h3>Dias desde o último ciclo</h3><p id="diasDesde">-</p></div>
     <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
   </div>
+  <p style="text-align:center; font-size:12px; color:#888; margin-top:-15px;">
+    (calculado com o histórico completo: ciclo atual + abas de backup "VISITA FINALIZADA...")
+  </p>
 
   <!-- Botão e barra de progresso -->
   <button id="btnS13">📄 Gerar S-13</button>
@@ -208,18 +211,21 @@ if (!token) {
   throw new Error("Token ausente");
 }
 
-let dadosGlobais = [];
-let mapasAtivos = []; // lista real de territórios cadastrados hoje (aba "mapas")
+let dadosGlobais = [];       // apenas o ciclo atual (aba "Respostas") - usado no gráfico/tabela principal
+let historicoCompleto = [];  // Respostas + todas as abas de backup - usado pra média de ciclo e "mapas antigos"
+let mapasAtivos = [];         // lista real de territórios cadastrados hoje (aba "mapas")
 let graficoPizza, graficoCiclos;
 
 async function carregarDados() {
   try {
-    const [resRespostas, resMapas] = await Promise.all([
+    const [resRespostas, resMapas, resAbas] = await Promise.all([
       fetch(`${workerURL}?acao=read&aba=Respostas`, { headers: { "x-auth-token": token } }),
-      fetch(`${workerURL}?acao=read&aba=mapas`, { headers: { "x-auth-token": token } })
+      fetch(`${workerURL}?acao=read&aba=mapas`, { headers: { "x-auth-token": token } }),
+      fetch(`${workerURL}?acao=listarabas`, { headers: { "x-auth-token": token } })
     ]);
     const dados = await resRespostas.json();
     const dadosMapas = await resMapas.json();
+    const dadosAbas = await resAbas.json();
 
     if (dados.erro && dados.erro.includes("Sessão")) {
       alert("Sessão expirada. Faça login novamente.");
@@ -227,8 +233,23 @@ async function carregarDados() {
       return;
     }
     dadosGlobais = dados.registros || [];
-    // Lista de territórios únicos que realmente existem hoje na aba "mapas"
     mapasAtivos = [...new Set((dadosMapas.registros || []).map(r => (r.Mapa || "").trim()).filter(Boolean))];
+
+    // Busca as abas de backup ("VISITA FINALIZADA ...") e junta com o ciclo atual,
+    // pra ter o histórico completo sem cortes causados pelo reset de 6 em 6 meses.
+    const nomesAbas = dadosAbas.abas || [];
+    const nomesBackup = nomesAbas.filter(n => n.toUpperCase().startsWith("VISITA FINALIZADA"));
+
+    const respostasBackup = await Promise.all(
+      nomesBackup.map(nome =>
+        fetch(`${workerURL}?acao=read&aba=${encodeURIComponent(nome)}`, { headers: { "x-auth-token": token } })
+          .then(r => r.json())
+          .then(d => d.registros || [])
+          .catch(() => [])
+      )
+    );
+
+    historicoCompleto = [...dadosGlobais, ...respostasBackup.flat()];
 
     document.getElementById("status").style.display = "none";
     preencherFiltro();
@@ -243,7 +264,7 @@ async function carregarDados() {
 
 function preencherFiltro() {
   const filtro = document.getElementById("filtroMapa");
-  const mapasComHistorico = dadosGlobais.map(d => d.Setor || d.setor);
+  const mapasComHistorico = historicoCompleto.map(d => d.Setor || d.setor);
   const mapas = [...new Set([...mapasAtivos, ...mapasComHistorico])].filter(Boolean).sort();
   mapas.forEach(mapa => {
     const opt = document.createElement("option");
@@ -288,7 +309,9 @@ function atualizarPainel(mapaSelecionado) {
 }
 
 function calcularIndicadores() {
-  const registros = dadosGlobais.map(d => ({
+  // Usa o histórico COMPLETO (ciclo atual + abas de backup), pra não cortar
+  // um ciclo no meio por causa do reset de 6 em 6 meses.
+  const registros = historicoCompleto.map(d => ({
     setor: d.Setor || d.setor,
     data: new Date(d["Data e Hora"] || d.dataHora)
   })).sort((a, b) => a.data - b.data);
@@ -365,8 +388,10 @@ function gerarGraficoCiclos(ciclos) {
 }
 
 function mostrarMapasAntigos() {
+  // Usa o histórico completo (atual + backups) pra achar a última visita real
+  // de cada mapa, não só o que sobrou depois do último reset.
   const registrosPorMapa = {};
-  dadosGlobais.forEach(d => {
+  historicoCompleto.forEach(d => {
     const setor = d.Setor || d.setor;
     const data = new Date(d["Data e Hora"] || d.dataHora);
     if (!registrosPorMapa[setor] || data > registrosPorMapa[setor]) registrosPorMapa[setor] = data;
@@ -374,26 +399,25 @@ function mostrarMapasAntigos() {
 
   const hoje = new Date();
 
-  // Mapas com pelo menos uma visita registrada no ciclo atual
   const comHistorico = Object.entries(registrosPorMapa).map(([setor, ultimaData]) => ({
     setor,
     dias: Math.round((hoje - ultimaData) / (1000 * 60 * 60 * 24)),
     semRegistro: false
   }));
 
-  // Mapas cadastrados sem nenhum registro NESTE ciclo (desde o último reset/backup) -
-  // não significa que nunca foram visitados, só que não há registro no período atual.
-  const semRegistroAtual = mapasAtivos
+  // Mapas cadastrados sem nenhum registro em todo o histórico disponível
+  // (ciclo atual + todas as abas de backup encontradas)
+  const semRegistroAlgum = mapasAtivos
     .filter(m => !(m in registrosPorMapa))
     .map(setor => ({ setor, dias: Infinity, semRegistro: true }));
 
-  const lista = [...semRegistroAtual, ...comHistorico];
+  const lista = [...semRegistroAlgum, ...comHistorico];
   lista.sort((a, b) => b.dias - a.dias);
   const top4 = lista.slice(0, 4);
 
   document.getElementById("listaAntigos").innerHTML = top4.map(item =>
     item.semRegistro
-      ? `<li>🔺 <strong>${item.setor}</strong> — sem registro neste ciclo</li>`
+      ? `<li>🔺 <strong>${item.setor}</strong> — sem registro no histórico disponível</li>`
       : `<li>🔸 <strong>${item.setor}</strong> — ${item.dias} dias</li>`
   ).join("");
 }
