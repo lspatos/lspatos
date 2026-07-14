@@ -64,9 +64,8 @@ async function gerarEnderecos(nomeMapa) {
 
   enderecosDoMapa.forEach((r, i) => {
     const enderecoOriginal = r.Endereco || "";
-    const restricao = (r.Restricao || "").toUpperCase();
-    const isAnc = restricao.includes("ANCI") || restricao.includes("IDOSO");
-    const textoEndereco = isAnc ? `IR ANCIÃO — ${enderecoOriginal}` : enderecoOriginal;
+    const restricao = (r.Restricao || "").trim();
+    const temRestricao = restricao.length > 0;
 
     // 🔹 Busca última visita (filtragem local)
     // Nota: a aba "mapas" usa a coluna "Endereco" (sem cedilha),
@@ -85,18 +84,18 @@ async function gerarEnderecos(nomeMapa) {
       diasDesde = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     }
 
-    // 🔹 Define cor conforme tempo
-    let corTexto = "#555";
+    // 🔹 Define cor conforme tempo (independe de ter restrição ou não)
+    let corTexto = "#697080";
     if (diasDesde !== null) {
-      if (diasDesde > 30) corTexto = isAnc ? "#ffe4e1" : "#e53935";
-      else if (diasDesde >= 15) corTexto = isAnc ? "#fff3cd" : "#f9a825";
-      else corTexto = isAnc ? "#c8e6c9" : "#388e3c";
+      if (diasDesde > 30) corTexto = "#D64550";
+      else if (diasDesde >= 15) corTexto = "#DB9526";
+      else corTexto = "#2F9E58";
     }
 
     // 🔹 Monta o card via DOM (sem onclick com strings interpoladas),
     // assim endereços com aspas, apóstrofos ou acentos nunca quebram o botão
     const div = document.createElement("div");
-    div.className = "container_end" + (isAnc ? " anciao" : "");
+    div.className = "container_end" + (temRestricao ? " anciao" : "");
 
     const cabeca = document.createElement("div");
     cabeca.className = "cabeca-endereco";
@@ -106,7 +105,7 @@ async function gerarEnderecos(nomeMapa) {
     selo.textContent = i + 1;
 
     const titulo = document.createElement("h4");
-    titulo.textContent = textoEndereco;
+    titulo.textContent = enderecoOriginal;
 
     cabeca.append(selo, titulo);
 
@@ -114,6 +113,13 @@ async function gerarEnderecos(nomeMapa) {
     ultimaVisita.className = "ultima-visita";
     ultimaVisita.style.color = corTexto;
     ultimaVisita.textContent = `⏱ Última visita: ${diasDesde === null ? "Sem registro" : `${diasDesde} dia${diasDesde !== 1 ? "s" : ""} atrás`}`;
+
+    let selRestricao = null;
+    if (temRestricao) {
+      selRestricao = document.createElement("p");
+      selRestricao.className = "selo-restricao";
+      selRestricao.textContent = `⚠ ${restricao}`;
+    }
 
     const entradas = document.createElement("div");
     entradas.className = "entradas";
@@ -137,7 +143,9 @@ async function gerarEnderecos(nomeMapa) {
     linkMaps.appendChild(btnMaps);
 
     entradas.append(btnEncontrado, btnNaoEncontrado, linkMaps);
-    div.append(cabeca, ultimaVisita, entradas);
+    div.append(cabeca, ultimaVisita);
+    if (selRestricao) div.append(selRestricao);
+    div.append(entradas);
     container.appendChild(div);
   });
 }
