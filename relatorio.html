@@ -25,24 +25,15 @@
       print-color-adjust: exact !important;
     }
 
-    h1 {
-      text-align: center;
-      color: var(--roxo-700);
-      margin: 20px 0 10px;
-      font-size: 26px;
-    }
+    .topo-app .btn-secundario { background: rgba(255,255,255,.16); color: #fff; }
+    .topo-app .btn-secundario:hover { background: rgba(255,255,255,.28); }
 
-    .top-bar {
-      position: sticky;
-      top: 0;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      padding: 10px;
-      background: #fff;
-      border-bottom: 2px solid var(--roxo-100);
-      z-index: 100;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    .resumo-relatorio {
+      text-align: center;
+      font-size: 13.5px;
+      color: var(--cinza-400);
+      font-family: var(--fonte-dado);
+      margin: 16px 0 4px;
     }
 
     /* layout visual responsivo */
@@ -78,11 +69,21 @@
     .mapa-header {
       background: linear-gradient(135deg, var(--roxo-700), var(--roxo-400));
       color: white;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       font-family: var(--fonte-display);
       font-weight: 600;
       font-size: 16px;
-      padding: 8px 0;
+      padding: 10px 0;
+    }
+    .mapa-header .contagem {
+      font-family: var(--fonte-dado);
+      font-size: 12px;
+      background: rgba(255,255,255,.18);
+      padding: 2px 8px;
+      border-radius: 20px;
     }
 
     .mapa-body {
@@ -109,10 +110,17 @@
       color: #7A5417;
       font-weight: 600;
     }
+    .restrito .tag-restricao {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 6px;
+      opacity: .85;
+    }
 
     /* layout fixo p/ impressão */
     @media print {
-      h1, .top-bar { display: none !important; }
+      .topo-app, .resumo-relatorio { display: none !important; }
       body { background: white; margin: 0; }
 
       .pagina {
@@ -136,12 +144,13 @@
 </head>
 
 <body>
-  <h1>Relatório de territórios</h1>
-
-  <div class="top-bar">
-    <button class="btn btn-secundario" onclick="voltar()">⬅ Voltar ao Admin</button>
+  <header class="topo-app">
+    <h1 style="text-align:left;">Relatório de territórios</h1>
+    <button class="btn btn-secundario" onclick="voltar()">⬅ Admin</button>
     <button class="btn btn-primario" onclick="window.print()">📄 Gerar PDF</button>
-  </div>
+  </header>
+
+  <p class="resumo-relatorio" id="resumoRelatorio"></p>
 
   <div id="relatorioContainer"></div>
 
@@ -179,7 +188,10 @@
       container.innerHTML = "";
 
       const grupos = agruparPorMapa(dados);
-      const mapas = Object.keys(grupos).sort();
+      const mapas = Object.keys(grupos).sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+
+      document.getElementById("resumoRelatorio").textContent =
+        `${mapas.length} territórios · ${dados.length} endereços`;
 
       let pagina = document.createElement("div");
       pagina.className = "pagina";
@@ -214,7 +226,12 @@
 
       const header = document.createElement("div");
       header.className = "mapa-header";
-      header.textContent = nomeMapa;
+      const nomeSpan = document.createElement("span");
+      nomeSpan.textContent = nomeMapa;
+      const contagem = document.createElement("span");
+      contagem.className = "contagem";
+      contagem.textContent = linhas.length;
+      header.append(nomeSpan, contagem);
       card.appendChild(header);
 
       const body = document.createElement("div");
@@ -223,10 +240,15 @@
       const lista = document.createElement("ol");
       linhas.forEach(l => {
         const item = document.createElement("li");
+        const restricao = (l.Restricao || "").trim();
         item.textContent = l.Endereco || "";
-        const restricao = (l.Restricao || "").toUpperCase();
-        if (restricao.includes("ANCI") || restricao.includes("IDOSO"))
+        if (restricao) {
           item.classList.add("restrito");
+          const tag = document.createElement("span");
+          tag.className = "tag-restricao";
+          tag.textContent = `— ${restricao}`;
+          item.appendChild(tag);
+        }
         lista.appendChild(item);
       });
 
