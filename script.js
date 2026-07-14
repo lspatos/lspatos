@@ -119,21 +119,13 @@ async function gerarEnderecos(nomeMapa) {
     ultimaVisita.style.color = corTexto;
     ultimaVisita.textContent = `⏱ Última visita: ${diasDesde === null ? "Sem registro" : `${diasDesde} dia${diasDesde !== 1 ? "s" : ""} atrás`}`;
 
-    // Botão discreto de alerta de mudança/falecimento (em qualquer endereço, mesmo já em análise)
-    const btnAlerta = document.createElement("button");
-    btnAlerta.className = "btn-alerta-mudanca";
-    btnAlerta.title = "Avisar mudança ou falecimento";
-    btnAlerta.innerHTML = "⚠";
-    btnAlerta.addEventListener("click", () => abrirPopoverAlerta(nomeMapa, enderecoOriginal));
-    div.appendChild(btnAlerta);
-
     if (emAnalise) {
       const badge = document.createElement("div");
       badge.className = "badge-analise";
       badge.innerHTML = "⚠ Endereço em análise — Provável mudança";
       div.append(cabeca, badge);
       container.appendChild(div);
-      return; // não mostra botões de Encontrado/Não encontrado nem restrição extra
+      return; // não mostra botões de ação nem restrição extra
     }
 
     let selRestricao = null;
@@ -164,7 +156,13 @@ async function gerarEnderecos(nomeMapa) {
     btnMaps.innerHTML = "🗺 Maps";
     linkMaps.appendChild(btnMaps);
 
-    entradas.append(btnEncontrado, btnNaoEncontrado, linkMaps);
+    const btnReportar = document.createElement("button");
+    btnReportar.className = "btn-reportar";
+    btnReportar.innerHTML = "⚠ Reportar";
+    btnReportar.title = "Avisar mudança ou falecimento";
+    btnReportar.addEventListener("click", () => abrirPopoverAlerta(nomeMapa, enderecoOriginal));
+
+    entradas.append(btnEncontrado, btnNaoEncontrado, linkMaps, btnReportar);
     div.append(cabeca, ultimaVisita);
     if (selRestricao) div.append(selRestricao);
     div.append(entradas);
