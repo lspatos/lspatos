@@ -3,52 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapa</title>
+  <title>Mapa — LS Mapas</title>
   <meta name="theme-color" content="#5c3d89" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="fav_icon.ico" type="image/x-icon">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
-    * { margin: 0; font-family: "Montserrat", sans-serif; }
-    html, body { height: 100vh; }
-
-    .cabecalho {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      height: 15vh;
-      background-color: #5c3d89;
-      color: #fff;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    .aviso-topo {
+      max-width: 640px;
+      margin: 14px auto 0;
+      padding: 0 16px;
     }
-
-    .div_titulo_texto { border-bottom: solid #ffffff; }
-    .button_back { background-color: #fff; color: #5c3d89; width: 50px; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-    .icon_back { width: 20px; }
-    .aviso { width: 70%; padding: 20px; }
-    .container_end { width: 90%; background-color: #e8e6e6; border-radius: 10px; margin: 15px auto; padding: 10px; }
-    .entradas { display: flex; gap: 10px; margin-top: 10px; }
-    .btn-verde { background-color: #4caf50; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-    .btn-vermelho { background-color: #f44336; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-    .btn-endereco { background-color: #ff9100; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; height: 60px; }
-    input[type="submit"]:hover { opacity: 0.9; }
-
-    .container_end.anciao {
-      background-color: #F51107;
-      border-left: 6px solid #F4910F;
-      box-shadow: 0 1px 0 rgba(0,0,0,.03);
+    .aviso-topo .cartao {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: var(--ambar-bg);
+      box-shadow: none;
+      font-size: 13.5px;
+      color: #7A5417;
+      line-height: 1.45;
     }
-    .container_end.anciao h4 { color: #7a3e00; }
-    #enderecos { padding-bottom: 40px; }
+    .aviso-topo strong { color: #7A5417; }
 
-    /* 🔹 Modal de identificação */
+    #enderecos { max-width: 640px; margin: 0 auto; padding: 6px 16px 50px; }
+
+    .container_end {
+      background: #fff;
+      border-radius: var(--raio-md);
+      box-shadow: var(--sombra-card);
+      margin: 14px 0;
+      padding: 16px 16px 14px;
+    }
+    .container_end .cabeca-endereco {
+      display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px;
+    }
+    .container_end .selo-territorio { width: 30px; height: 30px; font-size: 13px; border-radius: 8px; flex-shrink:0; }
+    .container_end h4 {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--tinta);
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+    .container_end p.ultima-visita { font-size: 13px; font-weight: 600; margin: 2px 0 0 40px; }
+
+    .container_end.anciao { border-left: 5px solid var(--ambar); background: var(--ambar-bg); }
+    .container_end.anciao h4 { color: #7A5417; }
+
+    .entradas { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .entradas button, .entradas a { flex: 1 1 90px; }
+    .btn-verde, .btn-vermelho, .btn-endereco {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      color: #fff; border: none; border-radius: var(--raio-sm);
+      cursor: pointer; height: 52px; font-weight: 600; font-size: 13.5px;
+      width: 100%;
+    }
+    .btn-verde { background: var(--verde); }
+    .btn-vermelho { background: var(--vermelho); }
+    .btn-endereco { background: var(--roxo-400); }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+
+    /* Modal de identificação */
     .modal {
       display: flex;
       position: fixed;
@@ -56,42 +74,35 @@
       top: 0; left: 0; right: 0; bottom: 0;
       justify-content: center;
       align-items: center;
-      background-color: rgba(0,0,0,0.5);
+      background-color: rgba(33, 27, 43, 0.55);
+      padding: 20px;
     }
     .modal-content {
       background: #fff;
-      padding: 25px;
-      border-radius: 12px;
+      padding: 28px 26px;
+      border-radius: var(--raio-lg);
       text-align: center;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      box-shadow: var(--sombra-flutuante);
+      width: 100%;
+      max-width: 340px;
     }
-    .modal-content h2 {
-      color: #5c3d89;
-      margin-bottom: 15px;
+    .modal-content h2 { font-size: 18px; margin-bottom: 16px; }
+    .modal-content select { margin-bottom: 16px; }
+    .modal-content .btn { width: 100%; }
+
+    .spinner {
+      border: 6px solid var(--roxo-100);
+      border-top: 6px solid var(--roxo-600);
+      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      animation: girar 1s linear infinite;
     }
-    .modal-content select {
-      padding: 8px 12px;
-      border: 1px solid #5c3d89;
-      border-radius: 6px;
-      font-size: 15px;
-      margin-bottom: 15px;
-      width: 220px;
-    }
-    .modal-content button {
-      background-color: #5c3d89;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-    .modal-content button:hover {
-      background-color: #4b2f74;
-    }
+    @keyframes girar { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <!-- 🔹 Modal de identificação -->
+  <!-- Modal de identificação -->
   <div id="identificacaoModal" class="modal">
     <div class="modal-content">
       <h2>Quem é o dirigente hoje?</h2>
@@ -111,21 +122,23 @@
         <option value="Viajante">Viajante</option>
         <option value="Victor">Victor</option>
       </select>
-      <button id="confirmarResponsavel">Confirmar</button>
+      <button id="confirmarResponsavel" class="btn btn-primario">Confirmar</button>
     </div>
   </div>
 
-  <section class="cabecalho">
+  <header class="topo-app">
     <a href="index.html">
-      <div class="button_back"><img class="icon_back" src="home.png" alt="Voltar" /></div>
+      <button class="btn-voltar"><img src="home.png" alt="Voltar ao início" /></button>
     </a>
-    <div class="div_titulo"><h1 id="tituloMapa" class="div_titulo_texto"></h1></div>
-  </section>
+    <h1 id="tituloMapa"></h1>
+  </header>
 
-  <section class="aviso">
-    <h3>*Atenção:</h3><br>
-    <p>Após clicar, aguarde até que a mensagem "Resposta registrada com sucesso!" seja exibida. Agradecemos.</p>
-  </section>
+  <div class="aviso-topo">
+    <div class="cartao">
+      <span>ℹ️</span>
+      <span><strong>Atenção:</strong> após clicar, aguarde a mensagem "Resposta registrada com sucesso!" antes de sair da tela.</span>
+    </div>
+  </div>
 
   <section id="enderecos"></section>
 
