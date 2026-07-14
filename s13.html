@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#5c3d89" />
+  <link rel="icon" href="fav_icon.ico" type="image/x-icon">
+  <title>S-13 LS MAPAS</title>
+
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+
+    html, body {
+      font-family: "Montserrat", sans-serif;
+      background: #f8f7fb;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: #fff;
+      border-bottom: 2px solid #e0dce9;
+      z-index: 100;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .btn-custom {
+      background-color: #5a2d82;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-custom:hover { background-color: #452160; }
+
+    input#anoServico {
+      padding: 8px 10px;
+      border: 1px solid #5a2d82;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    #avisos {
+      max-width: 700px;
+      margin: 15px auto;
+      padding: 0 15px;
+    }
+    #avisos .aviso {
+      background: #fff3cd;
+      border-left: 4px solid #f9a825;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    /* ===== Folha S-13 (o que realmente vira PDF) ===== */
+    #folha {
+      background: #fff;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 20px auto;
+      padding: 12mm;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      font-family: Arial, sans-serif;
+      color: #000;
+      box-sizing: border-box;
+    }
+
+    #folha h1 {
+      text-align: center;
+      font-size: 14pt;
+      font-weight: bold;
+      margin: 0 0 14px 0;
+    }
+
+    .linha-ano {
+      font-size: 11pt;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .linha-ano span.valor {
+      font-weight: normal;
+      border-bottom: 1px solid #000;
+      padding: 0 6px;
+    }
+
+    table.s13 {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    table.s13 th, table.s13 td {
+      border: 1px solid #000;
+      text-align: center;
+      padding: 2px 3px;
+      overflow: hidden;
+    }
+    table.s13 th {
+      font-weight: normal;
+    }
+    .th-terr   { width: 6.7%;  font-size: 9pt; }
+    .th-ultima { width: 12.1%; font-size: 9pt; }
+    .th-designado { width: 10.15%; font-size: 9pt; }
+    .th-sub    { font-size: 8pt; font-weight: normal; }
+    td.terr   { font-size: 9pt; font-weight: bold; }
+    td.ultima { font-size: 8.5pt; }
+    td.datas  { font-size: 8.5pt; }
+
+    .rodape-nota {
+      font-size: 10pt;
+      margin-top: 8px;
+    }
+    .rodape-codigo {
+      font-size: 10pt;
+      margin-top: 4px;
+    }
+
+    @media print {
+      .top-bar, #avisos { display: none !important; }
+      body { background: #fff; }
+      #folha {
+        box-shadow: none;
+        margin: 0;
+        width: auto;
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <button class="btn-custom" onclick="voltar()">⬅ Voltar ao Admin</button>
+    <label for="anoServico" style="font-size:14px;">Ano de Serviço:</label>
+    <input type="text" id="anoServico" placeholder="2025-2026" value="">
+    <button class="btn-custom" onclick="gerar()">🔄 Gerar</button>
+    <button class="btn-custom" onclick="window.print()">📄 Imprimir / Salvar PDF</button>
+  </div>
+
+  <div id="avisos"></div>
+
+  <div id="folha">
+    <h1>REGISTRO DE DESIGNAÇÃO DE TERRITÓRIO</h1>
+    <div class="linha-ano">Ano de Serviço: <span class="valor" id="anoServicoImpresso">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+    <table class="s13">
+      <thead>
+        <tr>
+          <th class="th-terr" rowspan="2">Terr.<br>n.º</th>
+          <th class="th-ultima" rowspan="2">Última data<br>concluída*</th>
+          <th class="th-designado" colspan="2">Designado para</th>
+          <th class="th-designado" colspan="2">Designado para</th>
+          <th class="th-designado" colspan="2">Designado para</th>
+          <th class="th-designado" colspan="2">Designado para</th>
+        </tr>
+        <tr>
+          <th class="th-sub">Data da<br>designação</th><th class="th-sub">Data da<br>conclusão</th>
+          <th class="th-sub">Data da<br>designação</th><th class="th-sub">Data da<br>conclusão</th>
+          <th class="th-sub">Data da<br>designação</th><th class="th-sub">Data da<br>conclusão</th>
+          <th class="th-sub">Data da<br>designação</th><th class="th-sub">Data da<br>conclusão</th>
+        </tr>
+      </thead>
+      <tbody id="corpoTabela">
+        <tr><td colspan="10" style="padding:20px; font-size:11pt;">Carregando dados...</td></tr>
+      </tbody>
+    </table>
+    <p class="rodape-nota">*Ao iniciar uma nova folha, use esta coluna para registrar a data em que cada território foi concluído pela última vez.</p>
+    <p class="rodape-codigo">S-13-T&nbsp;&nbsp;01/22</p>
+  </div>
+
+<script>
+const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
+const token = sessionStorage.getItem("authToken");
+
+if (!token) {
+  document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;margin-top:50px;'>Acesso negado. Faça login pelo admin.</h3>";
+  throw new Error("Token ausente");
+}
+
+function voltar() { window.location.href = "admin.html"; }
+
+function mostrarAviso(msg) {
+  const div = document.createElement("div");
+  div.className = "aviso";
+  div.textContent = msg;
+  document.getElementById("avisos").appendChild(div);
+}
+
+// Formata uma data pro padrão dd/mm/aaaa
+function formatarData(d) {
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+// Retorna só a parte da data (sem hora), pra agrupar por dia
+function chaveDia(dataObj) {
+  return formatarData(dataObj);
+}
+
+async function buscarAba(nomeAba) {
+  const res = await fetch(`${workerURL}?acao=read&aba=${encodeURIComponent(nomeAba)}`, {
+    headers: { "x-auth-token": token }
+  });
+  const dados = await res.json();
+  return dados.registros || [];
+}
+
+async function gerar() {
+  const anoServico = document.getElementById("anoServico").value.trim();
+  document.getElementById("anoServicoImpresso").textContent = anoServico || "\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0";
+  document.getElementById("avisos").innerHTML = "";
+  document.getElementById("corpoTabela").innerHTML = "<tr><td colspan='10' style='padding:20px; font-size:11pt;'>Carregando dados...</td></tr>";
+
+  try {
+    // 1) Lista de territórios ativos hoje
+    const registrosMapas = await buscarAba("mapas");
+    const territorios = [...new Set(registrosMapas.map(r => (r.Mapa || "").trim()).filter(Boolean))].sort();
+
+    if (territorios.length === 0) {
+      document.getElementById("corpoTabela").innerHTML = "<tr><td colspan='10'>Nenhum território cadastrado.</td></tr>";
+      return;
+    }
+
+    // 2) Respostas do período atual (aba "Respostas" - reseta a cada visita do superintendente)
+    const respostasAtuais = await buscarAba("Respostas");
+
+    // 3) Abas de backup (histórico de períodos anteriores), pra achar a "Última data concluída"
+    const resAbas = await fetch(`${workerURL}?acao=listarabas`, { headers: { "x-auth-token": token } });
+    const dadosAbas = await resAbas.json();
+    const nomesBackup = (dadosAbas.abas || []).filter(n => n.toUpperCase().startsWith("VISITA FINALIZADA"));
+
+    const respostasBackup = (await Promise.all(
+      nomesBackup.map(nome => buscarAba(nome).catch(() => []))
+    )).flat();
+
+    // Data mais antiga do período atual = início do período vigente
+    const datasAtuais = respostasAtuais
+      .map(r => new Date(r["Data e Hora"] || r.dataHora))
+      .filter(d => !isNaN(d));
+    const inicioPeriodo = datasAtuais.length ? new Date(Math.min(...datasAtuais)) : null;
+
+    // 4) Monta os dados de cada território
+    const linhasHTML = [];
+    let algumTerritorioComMaisDe4Datas = false;
+
+    territorios.forEach(mapa => {
+      // "Última data concluída": última visita a esse mapa registrada ANTES do início do período atual
+      const visitasAnteriores = respostasBackup
+        .filter(r => (r.Setor || r.setor) === mapa)
+        .map(r => new Date(r["Data e Hora"] || r.dataHora))
+        .filter(d => !isNaN(d) && (!inicioPeriodo || d < inicioPeriodo));
+      const ultimaConcluida = visitasAnteriores.length
+        ? formatarData(new Date(Math.max(...visitasAnteriores)))
+        : "";
+
+      // Datas distintas em que houve QUALQUER registro (Encontrado ou Não) nesse mapa, no período atual
+      const datasDoMapa = respostasAtuais
+        .filter(r => (r.Setor || r.setor) === mapa)
+        .map(r => new Date(r["Data e Hora"] || r.dataHora))
+        .filter(d => !isNaN(d));
+
+      const diasUnicos = [...new Set(datasDoMapa.map(chaveDia))]
+        .sort((a, b) => {
+          const [da, ma, ya] = a.split("/").map(Number);
+          const [db, mb, yb] = b.split("/").map(Number);
+          return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+        });
+
+      if (diasUnicos.length > 4) algumTerritorioComMaisDe4Datas = true;
+      const slots = diasUnicos.slice(0, 4);
+
+      let celulasDatas = "";
+      for (let i = 0; i < 4; i++) {
+        const dia = slots[i];
+        celulasDatas += `<td class="datas">${dia || ""}</td><td class="datas">${dia || ""}</td>`;
+      }
+
+      linhasHTML.push(`
+        <tr>
+          <td class="terr">${mapa}</td>
+          <td class="ultima">${ultimaConcluida}</td>
+          ${celulasDatas}
+        </tr>`);
+    });
+
+    document.getElementById("corpoTabela").innerHTML = linhasHTML.join("");
+
+    if (algumTerritorioComMaisDe4Datas) {
+      mostrarAviso("⚠ Pelo menos um território teve mais de 4 datas distintas de visita neste período. A folha só tem espaço pra 4 — confira manualmente se precisa de uma folha extra pra esse mapa.");
+    }
+    if (!inicioPeriodo) {
+      mostrarAviso("ℹ Não há nenhum registro no período atual ainda — a tabela ficará só com a \"Última data concluída\" (se houver no histórico).");
+    }
+    if (nomesBackup.length === 0) {
+      mostrarAviso("ℹ Nenhuma aba de backup encontrada — a coluna \"Última data concluída\" ficará em branco (não há histórico anterior pra consultar).");
+    }
+  } catch (err) {
+    console.error(err);
+    document.getElementById("corpoTabela").innerHTML = "<tr><td colspan='10'>❌ Erro ao carregar dados.</td></tr>";
+  }
+}
+
+gerar();
+</script>
+</body>
+</html>
