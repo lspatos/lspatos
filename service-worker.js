@@ -56,8 +56,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then(resp => {
-          const copia = resp.clone();
-          caches.open(CACHE_DADOS).then(cache => cache.put(req, copia));
+          try {
+            if (resp && resp.ok) {
+              const copia = resp.clone();
+              caches.open(CACHE_DADOS).then(cache => cache.put(req, copia)).catch(() => {});
+            }
+          } catch (e) { /* cache é só otimização, nunca deve quebrar a resposta real */ }
           return resp;
         })
         .catch(() => caches.match(req))
@@ -71,7 +75,12 @@ self.addEventListener('fetch', (event) => {
       caches.match(req).then(cached => {
         const buscaRede = fetch(req)
           .then(resp => {
-            caches.open(CACHE_ESTATICO).then(cache => cache.put(req, resp.clone()));
+            try {
+              if (resp && resp.ok) {
+                const copia = resp.clone();
+                caches.open(CACHE_ESTATICO).then(cache => cache.put(req, copia)).catch(() => {});
+              }
+            } catch (e) { /* cache é só otimização, nunca deve quebrar a resposta real */ }
             return resp;
           })
           .catch(() => cached);
