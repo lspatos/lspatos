@@ -168,7 +168,7 @@
   <div class="indicadores" id="indicadores">
     <div class="card"><h3>Último ciclo</h3><p id="ultimoCiclo">-</p></div>
     <div class="card"><h3>Média dos ciclos</h3><p id="mediaCiclos">-</p></div>
-    <div class="card"><h3>Dias desde o último ciclo</h3><p id="diasDesde">-</p></div>
+    <div class="card"><h3>Faltam p/ fechar o ciclo atual</h3><p id="mapasRestantes">-</p></div>
     <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
   </div>
   <p style="text-align:center; font-size:12px; color:#888; margin-top:-15px;">
@@ -324,7 +324,7 @@ function calcularIndicadores() {
   if (totalMapasAtivos === 0 || registros.length === 0) {
     document.getElementById("ultimoCiclo").textContent = "-";
     document.getElementById("mediaCiclos").textContent = "-";
-    document.getElementById("diasDesde").textContent = "-";
+    document.getElementById("mapasRestantes").textContent = "-";
     document.getElementById("statusCiclo").textContent = "Sem dados suficientes";
     gerarGraficoCiclos([]);
     return;
@@ -348,12 +348,12 @@ function calcularIndicadores() {
   const ultimo = ciclos[ciclos.length - 1];
   const media = ciclos.length ? ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length : 0;
   const hoje = new Date();
-  const diasDesde = ultimo ? Math.round((hoje - ultimo.fim) / (1000 * 60 * 60 * 24)) : "-";
   const cicloAtualDias = Math.round((hoje - inicioCiclo) / (1000 * 60 * 60 * 24));
+  const restantes = totalMapasAtivos - visitados.size; // "visitados" aqui reflete o ciclo em andamento (ainda não fechado)
 
   document.getElementById("ultimoCiclo").textContent = ultimo ? `${ultimo.duracaoDias} dias` : "-";
   document.getElementById("mediaCiclos").textContent = ciclos.length ? `${media.toFixed(1)} dias` : "-";
-  document.getElementById("diasDesde").textContent = ultimo ? `${diasDesde} dias` : "-";
+  document.getElementById("mapasRestantes").textContent = `${restantes} de ${totalMapasAtivos}`;
 
   const statusCiclo = document.getElementById("statusCiclo");
   if (ciclos.length === 0) {
