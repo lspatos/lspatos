@@ -93,26 +93,14 @@
       margin-top: 4px;
     }
 
-    /* Botão de alerta de mudança/falecimento - discreto, no canto do card */
-    .container_end { position: relative; }
-    .btn-alerta-mudanca {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(33,27,43,0.08);
-      color: var(--cinza-700);
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background .15s;
+    /* Botão "Reportar" - mudança/falecimento, junto com os outros botões de ação */
+    .btn-reportar {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      color: #fff; background: var(--ambar);
+      border: none; border-radius: var(--raio-sm);
+      cursor: pointer; height: 52px; font-weight: 600; font-size: 13.5px;
+      width: 100%;
     }
-    .btn-alerta-mudanca:hover { background: rgba(33,27,43,0.16); }
 
     /* Popover de motivo do alerta */
     .popover-alerta {
