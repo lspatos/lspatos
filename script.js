@@ -135,8 +135,92 @@ async function gerarEnderecos(nomeMapa) {
 }
 
 // ==========================
-// ENVIO PARA GOOGLE SHEETS
+// ENVIO PARA GOOGLE SHEETS (com fila offline)
 // ==========================
+const CHAVE_FILA = "filaEnviosLS";
+
+function lerFila() {
+  try {
+    return JSON.parse(localStorage.getItem(CHAVE_FILA) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function salvarFila(fila) {
+  localStorage.setItem(CHAVE_FILA, JSON.stringify(fila));
+  atualizarBadgeFila();
+}
+
+function atualizarBadgeFila() {
+  const fila = lerFila();
+  let badge = document.getElementById("badgeFilaPendente");
+
+  if (fila.length === 0) {
+    if (badge) badge.remove();
+    return;
+  }
+
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "badgeFilaPendente";
+    badge.style.position = "fixed";
+    badge.style.top = "10px";
+    badge.style.right = "10px";
+    badge.style.background = "#ff9100";
+    badge.style.color = "#fff";
+    badge.style.padding = "6px 12px";
+    badge.style.borderRadius = "20px";
+    badge.style.fontSize = "12px";
+    badge.style.fontWeight = "600";
+    badge.style.zIndex = "1001";
+    badge.style.boxShadow = "0 2px 6px rgba(0,0,0,.2)";
+    badge.style.cursor = "pointer";
+    badge.title = "Clique pra tentar enviar agora";
+    badge.addEventListener("click", tentarReenviarFila);
+    document.body.appendChild(badge);
+  }
+  badge.textContent = `📤 ${fila.length} pendente${fila.length !== 1 ? "s" : ""}`;
+}
+
+// Tenta enviar de fato um payload pro Worker. Retorna true se confirmado com sucesso.
+async function enviarPayload(payload) {
+  const response = await fetch(proxyURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const resultText = await response.text();
+  try {
+    const parsed = JSON.parse(resultText);
+    return ["ok", "success", "registrado"].includes(parsed.status?.toLowerCase())
+      || parsed.result?.toLowerCase() === "success";
+  } catch {
+    return /ok|success|registrado/i.test(resultText);
+  }
+}
+
+// Percorre a fila salva e tenta reenviar cada item pendente
+async function tentarReenviarFila() {
+  const fila = lerFila();
+  if (fila.length === 0) return;
+
+  const restantes = [];
+  for (const payload of fila) {
+    try {
+      const ok = await enviarPayload(payload);
+      if (!ok) restantes.push(payload);
+    } catch {
+      restantes.push(payload); // ainda sem sinal, mantém na fila
+    }
+  }
+
+  salvarFila(restantes);
+  if (restantes.length < fila.length) {
+    showToast(`✅ ${fila.length - restantes.length} envio(s) pendente(s) confirmado(s)!`);
+  }
+}
+
 async function handleSubmit(status, setor, endereco, botoes = []) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
@@ -153,30 +237,17 @@ async function handleSubmit(status, setor, endereco, botoes = []) {
   botoes.forEach(b => b.disabled = true);
 
   try {
-    const response = await fetch(proxyURL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const resultText = await response.text();
-    console.log("Resposta bruta:", resultText);
-
-    let ok = false;
-    try {
-      const parsed = JSON.parse(resultText);
-      ok = ["ok", "success", "registrado"].includes(parsed.status?.toLowerCase()) 
-           || parsed.result?.toLowerCase() === "success";
-    } catch {
-      ok = /ok|success|registrado/i.test(resultText);
-    }
-
+    const ok = await enviarPayload(payload);
     if (ok) showToast("✅ Resposta registrada com sucesso!");
     else showToast("⚠ O servidor recebeu, mas retornou um erro. Tente novamente.");
   } catch (error) {
     console.error("Erro ao enviar:", error);
     if (error instanceof TypeError) {
-      showToast("📡 Sem conexão. Verifique sua internet e tente enviar de novo.");
+      // Sem sinal: guarda no aparelho e envia depois automaticamente
+      const fila = lerFila();
+      fila.push(payload);
+      salvarFila(fila);
+      showToast("💾 Sem sinal agora — salvo no aparelho, será enviado sozinho quando voltar.");
     } else {
       showToast("❌ Falha ao enviar. Tente novamente.");
     }
@@ -263,3 +334,22 @@ spinnerStyle.innerHTML = `
   100% { transform: rotate(360deg); }
 }`;
 document.head.appendChild(spinnerStyle);
+
+// ==========================
+// PWA: registra o service worker e cuida da fila offline
+// ==========================
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch(err => console.warn("Falha ao registrar service worker:", err));
+  });
+}
+
+// Assim que a conexão voltar, tenta enviar o que ficou pendente
+window.addEventListener("online", tentarReenviarFila);
+
+// Ao abrir a página, mostra o badge se já houver pendências e tenta reenviar
+document.addEventListener("DOMContentLoaded", () => {
+  atualizarBadgeFila();
+  tentarReenviarFila();
+});
