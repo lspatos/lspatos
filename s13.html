@@ -120,6 +120,7 @@
     td.terr   { font-size: 9pt; font-weight: bold; }
     td.ultima { font-size: 8.5pt; }
     td.datas  { font-size: 7.5pt; line-height: 1.15; }
+    td.nome   { font-size: 8.5pt; text-transform: uppercase; font-weight: 500; }
 
     .rodape-nota {
       font-size: 10pt;
@@ -266,25 +267,30 @@ async function gerar() {
         ? formatarData(new Date(Math.max(...visitasAnteriores)))
         : "";
 
-      // Agrupa por (data, dirigente): cada combinação distinta é uma "designação".
-      // Vários endereços do mesmo dirigente no mesmo dia viram UMA designação só;
-      // dirigentes diferentes no mesmo dia viram designações separadas.
-      const registrosDoMapa = respostasAtuais.filter(r => (r.Setor || r.setor) === mapa);
-      const mapaChaveParaEntrada = new Map(); // "dd/mm/aa|nome" -> { data, nome, dataObj }
+      // Agrupa em BLOCOS de designação: enquanto o mesmo dirigente aparece em sequência
+      // (visitando qualquer endereço desse mapa, em datas seguidas), é UMA designação só.
+      // Quando outro dirigente aparece, fecha o bloco anterior e abre um novo.
+      // Designação = primeira data do bloco; Conclusão = última data do bloco.
+      const registrosDoMapa = respostasAtuais
+        .filter(r => (r.Setor || r.setor) === mapa)
+        .map(r => ({
+          dataObj: new Date(r["Data e Hora"] || r.dataHora),
+          nome: (r.Responsável || r.Responsavel || r.responsavel || "").trim() || "?"
+        }))
+        .filter(r => !isNaN(r.dataObj))
+        .sort((a, b) => a.dataObj - b.dataObj);
 
+      const designacoes = [];
       registrosDoMapa.forEach(r => {
-        const dataObj = new Date(r["Data e Hora"] || r.dataHora);
-        if (isNaN(dataObj)) return;
-        const nome = (r.Responsável || r.Responsavel || r.responsavel || "").trim() || "?";
-        const diaFmt = formatarData(dataObj);
-        const chave = `${diaFmt}|${nome}`;
-        if (!mapaChaveParaEntrada.has(chave)) {
-          mapaChaveParaEntrada.set(chave, { data: diaFmt, nome, dataObj });
+        const ultimoBloco = designacoes[designacoes.length - 1];
+        if (ultimoBloco && ultimoBloco.nome === r.nome) {
+          // mesmo dirigente em sequência: estende o bloco atual
+          if (r.dataObj > ultimoBloco.fimObj) ultimoBloco.fimObj = r.dataObj;
+        } else {
+          // dirigente diferente (ou primeiro registro): abre um novo bloco
+          designacoes.push({ nome: r.nome, inicioObj: r.dataObj, fimObj: r.dataObj });
         }
       });
-
-      const designacoes = [...mapaChaveParaEntrada.values()]
-        .sort((a, b) => a.dataObj - b.dataObj);
 
       // Quebra em grupos de 4 (capacidade de cada linha da folha).
       // Se houver mais de 4, cria linha(s) de continuação pro mesmo território.
@@ -296,19 +302,24 @@ async function gerar() {
       if (grupos.length > 1) algumTerritorioComContinuacao = true;
 
       grupos.forEach((grupo, gi) => {
-        let celulas = "";
+        let celulasNome = "";
+        let celulasDatas = "";
         for (let i = 0; i < 4; i++) {
           const d = grupo[i];
-          celulas += `<td class="datas">${d ? d.nome : ""}</td><td class="datas">${d ? d.data : ""}</td>`;
+          const inicio = d ? formatarData(d.inicioObj) : "";
+          const fim = d ? formatarData(d.fimObj) : "";
+          celulasNome += `<td class="datas nome" colspan="2">${d ? d.nome : ""}</td>`;
+          celulasDatas += `<td class="datas">${inicio}</td><td class="datas">${fim}</td>`;
         }
         const rotuloTerr = gi === 0 ? mapa : `${mapa} (cont.)`;
         const ultimaCel = gi === 0 ? ultimaConcluida : "";
         linhasHTML.push(`
           <tr>
-            <td class="terr">${rotuloTerr}</td>
-            <td class="ultima">${ultimaCel}</td>
-            ${celulas}
-          </tr>`);
+            <td class="terr" rowspan="2">${rotuloTerr}</td>
+            <td class="ultima" rowspan="2">${ultimaCel}</td>
+            ${celulasNome}
+          </tr>
+          <tr>${celulasDatas}</tr>`);
       });
     });
 
