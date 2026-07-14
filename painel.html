@@ -5,196 +5,103 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#5c3d89" />
   <link rel="icon" href="fav_icon.ico" type="image/x-icon">
-  <title>Painel LS MAPAS</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Painel — LS Mapas</title>
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: "Montserrat", sans-serif;
-      padding: 20px;
-      background-color: #fafafa;
-    }
-    h1 {
-      text-align: center;
-      color: #5c3d89;
-    }
-    .btn-custom {
-      background-color: #5a2d82;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .btn-custom:hover { background-color: #452160; }
-    .top-bar {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 15px;
-    }
+    body { padding-bottom: 40px; }
+    main { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+    .topo-app .btn-secundario { background: rgba(255,255,255,.16); color: #fff; }
+    .topo-app .btn-secundario:hover { background: rgba(255,255,255,.28); }
+
+    h1.titulo-pagina { text-align: center; font-size: 22px; margin: 22px 0 4px; }
+    .nota-calculo { text-align: center; font-size: 12.5px; color: var(--cinza-400); margin-bottom: 22px; }
+
     .indicadores {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-      margin: 25px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
     }
-    .card {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-      padding: 15px 20px;
-      text-align: center;
-      min-width: 180px;
-    }
-    .card h3 {
-      font-size: 15px;
-      color: #5c3d89;
-      margin-bottom: 5px;
-    }
-    .card p {
-      font-size: 16px;
-      font-weight: bold;
-      margin: 0;
-    }
-    .alerta {
-      color: #f44336;
-      font-weight: bold;
-      animation: piscar 1s infinite alternate;
-    }
-    @keyframes piscar {
-      from { opacity: 1; }
-      to { opacity: 0.4; }
-    }
-    .graficos-lado-a-lado {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      gap: 40px;
-      flex-wrap: wrap;
-      margin-top: 40px;
-    }
-    .grafico-container,
-    .grafico-barras {
-      flex: 1 1 420px;
-      max-width: 420px;
-      aspect-ratio: 1 / 1;
-      background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain;
-    }
-    .filtro {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    select {
-      padding: 8px 12px;
-      border-radius: 5px;
-      border: 1px solid #5c3d89;
-      font-size: 14px;
-      background-color: white;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-      background: white;
-      box-shadow: 0 0 8px rgba(0,0,0,0.05);
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-      font-size: 14px;
-    }
-    th {
-      background-color: #5c3d89;
-      color: white;
-    }
-    #status {
-      text-align: center;
-      color: #5c3d89;
-    }
-    #mapasAntigos {
-      background: white;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-      border-radius: 8px;
-      padding: 15px 25px;
-      max-width: 600px;
-      margin: 0 auto 30px auto;
-    }
-    #mapasAntigos h3 {
-      margin-bottom: 10px;
-      color: #5c3d89;
-      text-align: center;
-    }
+    .indicadores .cartao { text-align: center; }
+    .indicadores h3 { font-size: 13px; color: var(--cinza-700); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px; }
+    .indicadores p { font-size: 20px; font-weight: 700; font-family: var(--fonte-dado); color: var(--roxo-900); }
+    .alerta { color: var(--vermelho) !important; animation: piscar 1.4s infinite alternate; }
+    @keyframes piscar { from { opacity: 1; } to { opacity: .45; } }
+
+    #mapasAntigos { max-width: 640px; margin: 26px auto; }
+    #mapasAntigos h3 { font-size: 15px; margin-bottom: 12px; display:flex; align-items:center; gap:8px; }
+    #listaAntigos { list-style: none; padding: 0; }
     #listaAntigos li {
-      font-size: 15px;
-      margin: 5px 0;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14.5px; padding: 8px 0; border-bottom: 1px solid var(--roxo-50);
     }
-    #btnS13 {
-      display: block;
-      margin: 0 auto 25px auto;
-      background-color: #5a2d82;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 10px 20px;
-      font-weight: 500;
-      cursor: pointer;
+    #listaAntigos li:last-child { border-bottom: none; }
+
+    .filtro {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin: 24px 0 16px; flex-wrap: wrap;
     }
-    #btnS13:hover { background-color: #452160; }
+    .filtro select { width: auto; min-width: 200px; }
+
+    #status { text-align: center; color: var(--roxo-600); font-weight: 600; margin-bottom: 16px; }
+
+    .graficos-lado-a-lado {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 10px;
+    }
+    .grafico-container, .grafico-barras {
+      background: #fff; border-radius: var(--raio-md); box-shadow: var(--sombra-card);
+      padding: 20px; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
+    }
+    canvas { width: 100% !important; height: 100% !important; }
+
+    #tabela { margin-top: 26px; }
+    #tabela table { font-size: 13px; }
   </style>
 </head>
 <body>
-  <div class="top-bar">
-    <button class="btn-custom" onclick="voltar()">⬅ Voltar ao Admin</button>
-  </div>
+  <header class="topo-app">
+    <h1 style="text-align:left;">Painel de resultados</h1>
+    <button class="btn btn-secundario" onclick="voltar()">⬅ Admin</button>
+  </header>
 
-  <h1>Painel de Resultados LS MAPAS</h1>
+  <main>
+    <p class="nota-calculo">Calculado com o histórico completo: ciclo atual + abas de backup "VISITA FINALIZADA…"</p>
 
-  <div class="indicadores" id="indicadores">
-    <div class="card"><h3>Último ciclo</h3><p id="ultimoCiclo">-</p></div>
-    <div class="card"><h3>Média dos ciclos</h3><p id="mediaCiclos">-</p></div>
-    <div class="card"><h3>Faltam p/ fechar o ciclo atual</h3><p id="mapasRestantes">-</p></div>
-    <div class="card"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
-  </div>
-  <p style="text-align:center; font-size:12px; color:#888; margin-top:-15px;">
-    (calculado com o histórico completo: ciclo atual + abas de backup "VISITA FINALIZADA...")
-  </p>
+    <div class="indicadores" id="indicadores">
+      <div class="cartao"><h3>Último ciclo</h3><p id="ultimoCiclo">-</p></div>
+      <div class="cartao"><h3>Média dos ciclos</h3><p id="mediaCiclos">-</p></div>
+      <div class="cartao"><h3>Faltam p/ fechar o ciclo</h3><p id="mapasRestantes">-</p></div>
+      <div class="cartao"><h3>Status atual</h3><p id="statusCiclo">-</p></div>
+    </div>
 
-  <div id="mapasAntigos">
-    <h3>🕒 Mapas com mais tempo sem atualização</h3>
-    <ul id="listaAntigos" style="list-style:none; padding-left:0; margin-top:10px; text-align:left;"></ul>
-  </div>
+    <div id="mapasAntigos" class="cartao">
+      <h3>🕒 Mapas com mais tempo sem atualização</h3>
+      <ul id="listaAntigos"></ul>
+    </div>
 
-  <div class="filtro">
-    <label for="filtroMapa">Filtrar por mapa:</label>
-    <select id="filtroMapa">
-      <option value="todos">Todos</option>
-    </select>
-  </div>
+    <div class="filtro">
+      <label for="filtroMapa">Filtrar por mapa</label>
+      <select id="filtroMapa">
+        <option value="todos">Todos</option>
+      </select>
+    </div>
 
-  <p id="status">⏳ Carregando dados...</p>
+    <p id="status">⏳ Carregando dados…</p>
 
-  <div class="graficos-lado-a-lado">
-    <div class="grafico-container"><canvas id="grafico"></canvas></div>
-    <div class="grafico-barras"><canvas id="graficoCiclos"></canvas></div>
-  </div>
+    <div class="graficos-lado-a-lado">
+      <div class="grafico-container"><canvas id="grafico"></canvas></div>
+      <div class="grafico-barras"><canvas id="graficoCiclos"></canvas></div>
+    </div>
 
-  <div id="tabela"></div>
+    <div id="tabela" class="tabela-scroll"></div>
+  </main>
 
 <script>
 const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev";
@@ -282,23 +189,27 @@ function atualizarPainel(mapaSelecionado) {
     type: "doughnut",
     data: {
       labels: ["Encontrado", "Não encontrado"],
-      datasets: [{ data: [encontrados, naoEncontrados], backgroundColor: ["#4caf50", "#f44336"] }]
+      datasets: [{ data: [encontrados, naoEncontrados], backgroundColor: ["#2F9E58", "#D64550"] }]
     },
     options: { plugins: { legend: { position: "bottom" } } }
   });
 
-  const linhas = filtrados.map(d => `
+  const linhas = filtrados.map(d => {
+    const status = d.Status || d.status || "";
+    const classeSelo = status === "Encontrado" ? "ok" : "alerta";
+    return `
     <tr>
       <td>${d["Data e Hora"] || d.dataHora}</td>
       <td>${d.Setor || d.setor}</td>
       <td>${d.Endereco || d.Endereço || d.endereco}</td>
-      <td>${d.Status || d.status}</td>
-    </tr>`).join("");
+      <td><span class="selo-status ${classeSelo}">${status}</span></td>
+    </tr>`;
+  }).join("");
 
   document.getElementById("tabela").innerHTML = `
-    <table>
-      <tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr>
-      ${linhas || "<tr><td colspan='4'>Nenhum registro encontrado.</td></tr>"}
+    <table class="tabela-dados">
+      <thead><tr><th>Data/Hora</th><th>Mapa</th><th>Endereço</th><th>Status</th></tr></thead>
+      <tbody>${linhas || "<tr><td colspan='4' style='text-align:center;'>Nenhum registro encontrado.</td></tr>"}</tbody>
     </table>`;
 }
 
