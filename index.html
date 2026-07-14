@@ -13,21 +13,71 @@
   <link rel="stylesheet" href="style.css">
   <style>
     .hero {
+      position: relative;
+      overflow: hidden;
       background: linear-gradient(155deg, var(--roxo-700) 0%, var(--roxo-600) 55%, var(--roxo-400) 130%);
       color: #fff;
-      padding: 34px 20px 46px;
-      text-align: center;
+      padding: 30px 20px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.08);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      bottom: 10px; left: -60px;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.06);
+    }
+    .hero-texto { position: relative; z-index: 1; text-align: center; }
     .hero .selo-app {
-      width: 56px; height: 56px;
+      width: 52px; height: 52px;
       border-radius: var(--raio-sm);
       background: rgba(255,255,255,.14);
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 14px;
     }
-    .hero .selo-app img { width: 30px; height: 30px; }
-    .hero h1 { color: #fff; font-size: 26px; letter-spacing: .2px; }
-    .hero p { color: rgba(255,255,255,.82); font-size: 14.5px; margin-top: 6px; }
+    .hero .selo-app img { width: 28px; height: 28px; }
+    .hero h1 { color: #fff; font-size: 26px; letter-spacing: .2px; animation: subir-fade .5s ease both; }
+    .hero p { color: rgba(255,255,255,.82); font-size: 14.5px; margin-top: 6px; animation: subir-fade .5s .08s ease both; }
+    .hero-ilustracao {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 300px;
+      margin: 6px auto -14px;
+      animation: subir-fade .6s .16s ease both;
+    }
+    .hero-ilustracao img { width: 100%; height: auto; display: block; }
+
+    @keyframes subir-fade {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero h1, .hero p, .hero-ilustracao { animation: none; }
+    }
+
+    @media (min-width: 720px) {
+      .hero {
+        flex-direction: row;
+        justify-content: center;
+        gap: 40px;
+        padding: 46px 40px;
+      }
+      .hero-texto { text-align: left; }
+      .hero .selo-app { margin: 0 0 14px; }
+      .hero-ilustracao { max-width: 340px; margin: 0; order: 2; }
+    }
 
     main { max-width: 960px; margin: 0 auto; padding: 0 16px; }
 
@@ -74,9 +124,14 @@
 </head>
 <body>
   <header class="hero">
-    <div class="selo-app"><img src="icon-192.png" alt=""></div>
-    <h1>LS Mapas</h1>
-    <p>Congregação de Libras — Patos de Minas</p>
+    <div class="hero-texto">
+      <div class="selo-app"><img src="icon-192.png" alt=""></div>
+      <h1>LS Mapas</h1>
+      <p>Congregação de Libras — Patos de Minas</p>
+    </div>
+    <div class="hero-ilustracao">
+      <img src="ilustracao_hero.svg" alt="Ilustração de uma pessoa explorando um mapa" />
+    </div>
   </header>
 
   <main>
