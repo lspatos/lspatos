@@ -213,7 +213,7 @@
     function agruparPorMapa(dados) {
       const grupos = {};
       dados.forEach(linha => {
-        const mapa = linha.Mapa || linha.mapa || "Sem Mapa";
+        const mapa = linha.Mapa || "Sem Mapa";
         if (!grupos[mapa]) grupos[mapa] = [];
         grupos[mapa].push(linha);
       });
@@ -235,8 +235,8 @@
       const lista = document.createElement("ol");
       linhas.forEach(l => {
         const item = document.createElement("li");
-        item.textContent = l.Endereco || l.Endereço || l.endereco || "";
-        const restricao = (l.Restrico || l.Restricao || l.restricao || "").toUpperCase();
+        item.textContent = l.Endereco || "";
+        const restricao = (l.Restricao || "").toUpperCase();
         if (restricao.includes("ANCI") || restricao.includes("IDOSO"))
           item.classList.add("restrito");
         lista.appendChild(item);
