@@ -108,6 +108,7 @@
       text-align: center;
       padding: 2px 3px;
       overflow: hidden;
+      word-break: break-word;
     }
     table.s13 th {
       font-weight: normal;
@@ -118,7 +119,7 @@
     .th-sub    { font-size: 8pt; font-weight: normal; }
     td.terr   { font-size: 9pt; font-weight: bold; }
     td.ultima { font-size: 8.5pt; }
-    td.datas  { font-size: 8.5pt; }
+    td.datas  { font-size: 7.5pt; line-height: 1.15; }
 
     .rodape-nota {
       font-size: 10pt;
@@ -131,12 +132,13 @@
 
     @media print {
       .top-bar, #avisos { display: none !important; }
-      body { background: #fff; }
+      html, body { background: #fff !important; }
       #folha {
-        box-shadow: none;
-        margin: 0;
-        width: auto;
-        min-height: auto;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+        min-height: auto !important;
       }
     }
   </style>
@@ -198,9 +200,9 @@ function mostrarAviso(msg) {
   document.getElementById("avisos").appendChild(div);
 }
 
-// Formata uma data pro padrão dd/mm/aaaa
+// Formata uma data pro padrão dd/mm/aa (ano com 2 dígitos, cabe melhor na coluna)
 function formatarData(d) {
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
 // Retorna só a parte da data (sem hora), pra agrupar por dia
@@ -252,7 +254,7 @@ async function gerar() {
 
     // 4) Monta os dados de cada território
     const linhasHTML = [];
-    let algumTerritorioComMaisDe4Datas = false;
+    let algumTerritorioComContinuacao = false;
 
     territorios.forEach(mapa => {
       // "Última data concluída": última visita a esse mapa registrada ANTES do início do período atual
@@ -264,40 +266,56 @@ async function gerar() {
         ? formatarData(new Date(Math.max(...visitasAnteriores)))
         : "";
 
-      // Datas distintas em que houve QUALQUER registro (Encontrado ou Não) nesse mapa, no período atual
-      const datasDoMapa = respostasAtuais
-        .filter(r => (r.Setor || r.setor) === mapa)
-        .map(r => new Date(r["Data e Hora"] || r.dataHora))
-        .filter(d => !isNaN(d));
+      // Agrupa por (data, dirigente): cada combinação distinta é uma "designação".
+      // Vários endereços do mesmo dirigente no mesmo dia viram UMA designação só;
+      // dirigentes diferentes no mesmo dia viram designações separadas.
+      const registrosDoMapa = respostasAtuais.filter(r => (r.Setor || r.setor) === mapa);
+      const mapaChaveParaEntrada = new Map(); // "dd/mm/aa|nome" -> { data, nome, dataObj }
 
-      const diasUnicos = [...new Set(datasDoMapa.map(chaveDia))]
-        .sort((a, b) => {
-          const [da, ma, ya] = a.split("/").map(Number);
-          const [db, mb, yb] = b.split("/").map(Number);
-          return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
-        });
+      registrosDoMapa.forEach(r => {
+        const dataObj = new Date(r["Data e Hora"] || r.dataHora);
+        if (isNaN(dataObj)) return;
+        const nome = (r.Responsável || r.Responsavel || r.responsavel || "").trim() || "?";
+        const diaFmt = formatarData(dataObj);
+        const chave = `${diaFmt}|${nome}`;
+        if (!mapaChaveParaEntrada.has(chave)) {
+          mapaChaveParaEntrada.set(chave, { data: diaFmt, nome, dataObj });
+        }
+      });
 
-      if (diasUnicos.length > 4) algumTerritorioComMaisDe4Datas = true;
-      const slots = diasUnicos.slice(0, 4);
+      const designacoes = [...mapaChaveParaEntrada.values()]
+        .sort((a, b) => a.dataObj - b.dataObj);
 
-      let celulasDatas = "";
-      for (let i = 0; i < 4; i++) {
-        const dia = slots[i];
-        celulasDatas += `<td class="datas">${dia || ""}</td><td class="datas">${dia || ""}</td>`;
+      // Quebra em grupos de 4 (capacidade de cada linha da folha).
+      // Se houver mais de 4, cria linha(s) de continuação pro mesmo território.
+      const grupos = [];
+      for (let i = 0; i < designacoes.length; i += 4) {
+        grupos.push(designacoes.slice(i, i + 4));
       }
+      if (grupos.length === 0) grupos.push([]); // território sem nenhuma designação no período
+      if (grupos.length > 1) algumTerritorioComContinuacao = true;
 
-      linhasHTML.push(`
-        <tr>
-          <td class="terr">${mapa}</td>
-          <td class="ultima">${ultimaConcluida}</td>
-          ${celulasDatas}
-        </tr>`);
+      grupos.forEach((grupo, gi) => {
+        let celulas = "";
+        for (let i = 0; i < 4; i++) {
+          const d = grupo[i];
+          celulas += `<td class="datas">${d ? d.nome : ""}</td><td class="datas">${d ? d.data : ""}</td>`;
+        }
+        const rotuloTerr = gi === 0 ? mapa : `${mapa} (cont.)`;
+        const ultimaCel = gi === 0 ? ultimaConcluida : "";
+        linhasHTML.push(`
+          <tr>
+            <td class="terr">${rotuloTerr}</td>
+            <td class="ultima">${ultimaCel}</td>
+            ${celulas}
+          </tr>`);
+      });
     });
 
     document.getElementById("corpoTabela").innerHTML = linhasHTML.join("");
 
-    if (algumTerritorioComMaisDe4Datas) {
-      mostrarAviso("⚠ Pelo menos um território teve mais de 4 datas distintas de visita neste período. A folha só tem espaço pra 4 — confira manualmente se precisa de uma folha extra pra esse mapa.");
+    if (algumTerritorioComContinuacao) {
+      mostrarAviso("ℹ Pelo menos um território teve mais de 4 designações neste período — foram criadas linhas extras \"(cont.)\" logo abaixo dele pra não perder nenhum registro.");
     }
     if (!inicioPeriodo) {
       mostrarAviso("ℹ Não há nenhum registro no período atual ainda — a tabela ficará só com a \"Última data concluída\" (se houver no histórico).");
