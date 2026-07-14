@@ -160,8 +160,8 @@ a {
   height: 40px;
   padding: 0 8px;
   border-radius: var(--raio-sm);
-  background: var(--roxo-600);
-  color: #fff;
+  background: var(--roxo-600) !important;
+  color: #fff !important;
   font-family: var(--fonte-display);
   font-weight: 700;
   font-size: 15px;
