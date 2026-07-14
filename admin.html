@@ -3,138 +3,166 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Administrativo — LS PATOS</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <meta name="theme-color" content="#5c3d89">
+  <link rel="icon" href="fav_icon.ico" type="image/x-icon">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Administração — LS Mapas</title>
+  <link rel="stylesheet" href="style.css">
   <style>
-    body {
-      background: #f5f4f8;
-      font-family: "Montserrat", sans-serif;
-    }
-    h1 {
-      color: #5a2d82;
-      font-weight: 700;
-      text-align: center;
-      margin: 40px 0 20px;
-    }
-    table {
-      background: #fff;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    th {
-      background-color: #5a2d82;
-      color: white;
-      text-align: center;
-    }
-    td, th { padding: 10px; text-align: center; }
-    .btn-custom { background-color: #5a2d82; color: white; border: none; }
-    .btn-custom:hover { background-color: #452160; }
-    /* --- Tela de login estilizada --- */
+    /* --- Login --- */
     #loginScreen {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(160deg,#5a2d82 40%,#7c52b0);
+      inset: 0;
+      background: linear-gradient(155deg, var(--roxo-700) 0%, var(--roxo-600) 55%, var(--roxo-400) 130%);
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 20px;
       z-index: 1000;
     }
     #loginCard {
-      background: white;
-      padding: 30px 40px;
-      border-radius: 12px;
-      width: 320px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      background: #fff;
+      padding: 34px 28px;
+      border-radius: var(--raio-lg);
+      width: 100%;
+      max-width: 340px;
+      box-shadow: var(--sombra-flutuante);
       text-align: center;
     }
-    #loginCard h2 {
-      color: #5a2d82;
-      margin-bottom: 20px;
-      font-weight: 700;
+    #loginCard .selo-app {
+      width: 48px; height: 48px; margin: 0 auto 14px;
+      border-radius: var(--raio-sm);
+      background: var(--roxo-100);
+      display: flex; align-items: center; justify-content: center;
     }
-    #loginCard input {
-      margin-bottom: 15px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      width: 100%;
-      font-size: 15px;
+    #loginCard .selo-app img { width: 26px; }
+    #loginCard h2 { font-size: 19px; margin-bottom: 20px; }
+    #loginCard .campo { margin-bottom: 14px; text-align: left; }
+    #loginCard .campo label { display: block; margin-bottom: 5px; }
+    .campo-senha { position: relative; }
+    .campo-senha img {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      width: 20px; height: 20px; cursor: pointer; opacity: .6;
     }
-    #loginCard button {
-      width: 100%;
-      padding: 10px;
-      background: #5a2d82;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
+    #loginMsg { color: var(--vermelho); margin-top: 10px; font-size: 13.5px; min-height: 18px; }
+
+    /* --- Painel --- */
+    #painel { max-width: 1080px; margin: 0 auto; padding: 0 16px 50px; display: none; }
+
+    .topo-app h1 { text-align: left; }
+
+    .painel-acoes {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 16px 0 6px;
     }
-    #loginCard button:hover { background: #452160; }
-    #loginMsg { color: #f44336; margin-top: 8px; }
+
+    .form-cartao {
+      margin: 18px 0;
+    }
+    .form-cartao h3 { font-size: 15px; margin-bottom: 14px; color: var(--cinza-700); text-transform: uppercase; letter-spacing: .04em; }
+    .grade-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+    .grade-form .campo label { display: block; margin-bottom: 5px; }
+    .form-botoes { display: flex; gap: 8px; grid-column: 1 / -1; }
+    .form-botoes .btn { flex: 1; }
+
+    .secao-titulo-tabela {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 26px 0 12px;
+    }
+    .secao-titulo-tabela h2 { font-size: 15px; color: var(--cinza-700); text-transform: uppercase; letter-spacing: .04em; }
+
+    table.tabela-dados .btn-icone {
+      width: 36px; height: 36px; min-height: 0; padding: 0; border-radius: 8px; font-size: 15px;
+    }
+    td.col-acoes { display: flex; gap: 6px; }
   </style>
 </head>
 <body>
 
-  <!-- 🔐 Tela de Login -->
+  <!-- Tela de Login -->
   <div id="loginScreen">
     <div id="loginCard">
-      <h2>Login Administrativo</h2>
-      <input type="text" id="usuario" placeholder="Usuário">
-<div style="position:relative; width:100%;">
-  <input type="password" id="senha" placeholder="Senha" class="form-control"
-         style="padding-right:38px;">
-  <img id="toggleSenha" src="hide.png" alt="Mostrar senha"
-       style="position:absolute; right:10px; top:50%; transform:translateY(-50%);
-              width:20px; height:20px; cursor:pointer; opacity:0.8;">
-</div>
-      <button onclick="login()">Entrar</button>
+      <div class="selo-app"><img src="icon-192.png" alt=""></div>
+      <h2>Administração — LS Mapas</h2>
+      <div class="campo">
+        <label for="usuario">Usuário</label>
+        <input type="text" id="usuario" placeholder="Seu usuário">
+      </div>
+      <div class="campo">
+        <label for="senha">Senha</label>
+        <div class="campo-senha">
+          <input type="password" id="senha" placeholder="Sua senha">
+          <img id="toggleSenha" src="hide.png" alt="Mostrar senha">
+        </div>
+      </div>
+      <button class="btn btn-primario btn-bloco" onclick="login()">Entrar</button>
       <div id="loginMsg"></div>
     </div>
   </div>
 
-  <!-- 🔧 Painel Administrativo -->
-  <div id="painel" class="container mt-4" style="display:none;">
-    <h1>Painel Administrativo — LS PATOS</h1>
-    <div class="card p-3 mb-4">
-      <div class="row g-2">
-        <div class="col-md-3">
-          <input type="text" id="mapa" class="form-control" placeholder="Mapa (ex: Mapa 01)">
+  <!-- Painel Administrativo -->
+  <div id="painel">
+    <header class="topo-app" style="margin: 0 -16px;">
+      <h1>Administração</h1>
+    </header>
+
+    <div class="painel-acoes">
+      <button class="btn btn-secundario" onclick="abrirPainel()">📊 Painel</button>
+      <button class="btn btn-secundario" onclick="abrirRelatorio()">📂 Relatórios</button>
+      <button class="btn btn-secundario" onclick="abrirS13()">📄 S-13</button>
+      <button class="btn btn-neutro" onclick="window.location.href='index.html'">⬅ Início</button>
+      <button class="btn btn-neutro" onclick="logout()">🚪 Sair</button>
+    </div>
+
+    <div class="cartao form-cartao">
+      <h3>Cadastrar / editar território</h3>
+      <div class="grade-form">
+        <div class="campo">
+          <label for="mapa">Mapa</label>
+          <input type="text" id="mapa" placeholder="Ex: Mapa 01">
         </div>
-        <div class="col-md-4">
-          <input type="text" id="endereco" class="form-control" placeholder="Endereço completo">
+        <div class="campo" style="grid-column: span 2;">
+          <label for="endereco">Endereço completo</label>
+          <input type="text" id="endereco" placeholder="Rua, número, bairro">
         </div>
-        <div class="col-md-3">
-          <input type="text" id="restricao" class="form-control" placeholder="Restrição (opcional)">
+        <div class="campo">
+          <label for="restricao">Restrição (opcional)</label>
+          <input type="text" id="restricao" placeholder="Ex: IR ANCIÃO">
         </div>
-        <div class="col-md-2 d-flex">
-          <button id="salvarBtn" class="btn btn-custom flex-fill me-2">Salvar / Atualizar</button>
-          <button id="limparBtn" class="btn btn-secondary flex-fill">Limpar</button>
-        </div>
-        </div>
-          <div class="text-center mt-4">
-          <button class="btn btn-custom me-2" onclick="abrirPainel()">📊 Painel</button>
-          <button class="btn btn-custom me-2" onclick="abrirRelatorio()">📂 Relatórios</button>
-          <button class="btn btn-custom me-2" onclick="abrirS13()">📄 S-13</button>
-          <button class="btn btn-secondary me-2" onclick="window.location.href='index.html'">⬅ Início</button>
-          <button class="btn btn-secondary" onclick="logout()">Sair</button>
+        <div class="form-botoes">
+          <button id="salvarBtn" class="btn btn-primario">💾 Salvar</button>
+          <button id="limparBtn" class="btn btn-neutro">✖ Limpar</button>
         </div>
       </div>
       <input type="hidden" id="id">
     </div>
 
-    <table class="table table-bordered table-striped">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Mapa</th>
-          <th>Endereço</th>
-          <th>Restrição</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="tabelaMapas"></tbody>
-    </table>
+    <div class="secao-titulo-tabela">
+      <h2>Territórios cadastrados</h2>
+      <span id="contagemRegistros" style="font-size:13px; color:var(--cinza-400); font-family:var(--fonte-dado);"></span>
+    </div>
+
+    <div class="tabela-scroll">
+      <table class="tabela-dados">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Mapa</th>
+            <th>Endereço</th>
+            <th>Restrição</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaMapas"></tbody>
+      </table>
+    </div>
+  </div>
 
 <script>
   const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
@@ -199,9 +227,9 @@
 
       const tbody = document.getElementById("tabelaMapas");
       tbody.innerHTML = "";
-      // Guarda os registros num array global e referencia por índice,
-      // em vez de montar strings de JS com os dados (evita quebrar com aspas nos endereços)
       registrosAtuais = dados.registros || [];
+      document.getElementById("contagemRegistros").textContent = `${registrosAtuais.length} endereços`;
+
       registrosAtuais.forEach((item, i) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -209,9 +237,9 @@
           <td>${escapeHTML(item.Mapa || "")}</td>
           <td>${escapeHTML(item.Endereco || "")}</td>
           <td>${escapeHTML(item.Restricao || "")}</td>
-          <td>
-            <button class="btn btn-sm btn-warning" onclick="editar(${i})">✏️</button>
-            <button class="btn btn-sm btn-danger" onclick="excluir('${item.ID}')">🗑️</button>
+          <td class="col-acoes">
+            <button class="btn btn-secundario btn-icone" onclick="editar(${i})" title="Editar">✏️</button>
+            <button class="btn btn-perigo btn-icone" onclick="excluir('${item.ID}')" title="Excluir">🗑️</button>
           </td>`;
         tbody.appendChild(tr);
       });
@@ -275,6 +303,7 @@
     document.getElementById("mapa").value = item.Mapa || "";
     document.getElementById("endereco").value = item.Endereco || "";
     document.getElementById("restricao").value = item.Restricao || "";
+    document.getElementById("mapa").scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   function limpar() {
@@ -290,8 +319,6 @@
   // === Navegação ===
   function abrirPainel() {
     if (!token) return alert("Sessão expirada.");
-    // O token já está no sessionStorage; painel.html lê de lá diretamente
-    // (sessionStorage é herdado por abas abertas via window.open na mesma origem)
     window.open("painel.html", "_blank");
   }
 
@@ -306,21 +333,21 @@
   }
 
   // === Sessão Persistente ===
-    if (token) iniciarPainel();
-document.getElementById("toggleSenha").onclick = () => {
-  const campo = document.getElementById("senha");
-  const icone = document.getElementById("toggleSenha");
+  if (token) iniciarPainel();
 
-  if (campo.type === "password") {
-    campo.type = "text";
-    icone.src = "view.png"; // mostra senha
-    icone.alt = "Ocultar senha";
-  } else {
-    campo.type = "password";
-    icone.src = "hide.png"; // esconde senha
-    icone.alt = "Mostrar senha";
-  }
-};
+  document.getElementById("toggleSenha").onclick = () => {
+    const campo = document.getElementById("senha");
+    const icone = document.getElementById("toggleSenha");
+    if (campo.type === "password") {
+      campo.type = "text";
+      icone.src = "view.png";
+      icone.alt = "Ocultar senha";
+    } else {
+      campo.type = "password";
+      icone.src = "hide.png";
+      icone.alt = "Mostrar senha";
+    }
+  };
 </script>
 </body>
 </html>
