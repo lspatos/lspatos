@@ -319,7 +319,13 @@
       const data = await res.json();
       if (data.erro && data.erro.includes("Sessão")) return logout();
       if (data.excluido === false) {
-        alert(data.mensagem || "Endereço não encontrado.");
+        // Endereço já não existia mais no cadastro (foi apagado manualmente antes) -
+        // mesmo assim, limpa os avisos antigos pra ele sair da lista de reportados.
+        await fetch(workerURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({ acao: "limpar-alertas", mapa: g.mapa, endereco: g.endereco })
+        });
       }
       await carregarMapas();
       await carregarAlertas();
