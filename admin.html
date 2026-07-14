@@ -221,8 +221,8 @@
       const linhas = dados.registros || [];
       const grupos = {};
       linhas.forEach(l => {
-        const mapa = l.Mapa || "";
-        const endereco = l.Endereco || "";
+        const mapa = (l.Mapa || "").trim();
+        const endereco = (l.Endereco || "").trim();
         const chave = mapa + "|||" + endereco;
         if (!grupos[chave]) grupos[chave] = { mapa, endereco, itens: [] };
         grupos[chave].itens.push({
@@ -234,7 +234,9 @@
 
       alertasAgrupados = Object.values(grupos).map(g => {
         const distintos = new Set(g.itens.map(i => i.responsavel.toLowerCase()));
-        const registroMapa = registrosAtuais.find(r => r.Mapa === g.mapa && r.Endereco === g.endereco);
+        const registroMapa = registrosAtuais.find(r =>
+          (r.Mapa || "").trim() === g.mapa && (r.Endereco || "").trim() === g.endereco
+        );
         const restricaoAtual = (registroMapa?.Restricao || "").toUpperCase();
         const marcado = restricaoAtual.includes("EM ANALISE") || restricaoAtual.includes("EM ANÁLISE");
         return { ...g, totalDistintos: distintos.size, marcado, idMapa: registroMapa?.ID || null };
@@ -261,7 +263,7 @@
           </ul>
           <div class="acoes-alerta">
             <button class="btn btn-neutro" onclick="limparAlertasEndereco(${i})">✔ Não é mudança, manter endereço</button>
-            ${g.idMapa ? `<button class="btn btn-perigo" onclick="excluirDaAlerta(${i})">🗑 Excluir endereço</button>` : ""}
+            <button class="btn btn-perigo" onclick="excluirDaAlerta(${i})">🗑 Excluir endereço</button>
           </div>
         </div>
       `).join("");
@@ -291,9 +293,23 @@
 
   async function excluirDaAlerta(indice) {
     const g = alertasAgrupados[indice];
-    if (!g.idMapa) return;
-    await excluir(g.idMapa);
-    await carregarAlertas();
+    if (!confirm(`Excluir o endereço "${g.endereco}" definitivamente?`)) return;
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "excluir-endereco", mapa: g.mapa, endereco: g.endereco })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      if (data.excluido === false) {
+        alert(data.mensagem || "Endereço não encontrado.");
+      }
+      await carregarMapas();
+      await carregarAlertas();
+    } catch {
+      alert("Erro ao excluir endereço.");
+    }
   }
 </script>
 
