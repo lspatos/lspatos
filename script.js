@@ -308,15 +308,22 @@ function abrirPopoverAlerta(mapa, endereco) {
   overlay.innerHTML = `
     <div class="conteudo">
       <h3>Avisar sobre este endereço</h3>
-      <p>Isso ajuda a manter os mapas atualizados. Selecione o motivo:</p>
+      <p>Isso ajuda a manter os mapas atualizados. Seu nome não precisa ser o do dirigente da sessão — qualquer publicador presente no campo pode reportar.</p>
+      <input type="text" id="nomeReportante" placeholder="Seu nome" style="margin-bottom:14px;">
+      <p style="margin-top:-8px;">Motivo:</p>
       ${opcoes.map((o, i) => `<button class="opcao" data-i="${i}">${o.texto}</button>`).join("")}
       <button class="cancelar">Cancelar</button>
     </div>`;
 
   overlay.querySelectorAll(".opcao").forEach((btn, i) => {
     btn.addEventListener("click", () => {
+      const nome = overlay.querySelector("#nomeReportante").value.trim();
+      if (!nome) {
+        showToast("⚠ Digite seu nome antes de continuar.");
+        return;
+      }
       overlay.remove();
-      enviarAlerta(mapa, endereco, opcoes[i].valor);
+      enviarAlerta(mapa, endereco, opcoes[i].valor, nome);
     });
   });
   overlay.querySelector(".cancelar").addEventListener("click", () => overlay.remove());
@@ -325,7 +332,7 @@ function abrirPopoverAlerta(mapa, endereco) {
   document.body.appendChild(overlay);
 }
 
-async function enviarAlerta(mapa, endereco, motivo) {
+async function enviarAlerta(mapa, endereco, motivo, nomeReportante) {
   showToast("⏳ Enviando aviso...");
   try {
     const response = await fetch(proxyURL, {
@@ -336,13 +343,13 @@ async function enviarAlerta(mapa, endereco, motivo) {
         mapa,
         endereco,
         motivo,
-        responsavel: responsavelAtual || "Não identificado"
+        responsavel: nomeReportante || "Não identificado"
       })
     });
     const data = await response.json();
 
     if (data.status === "ja_registrado") {
-      showToast("ℹ Você já avisou sobre esse endereço antes.");
+      showToast("ℹ Esse nome já reportou esse endereço antes.");
     } else if (data.marcado) {
       showToast("⚠ Endereço atingiu 3 avisos e foi marcado para análise.");
       gerarEnderecos(nomeMapa); // recarrega a lista pra já mostrar o novo estado
