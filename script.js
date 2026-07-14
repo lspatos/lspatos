@@ -98,12 +98,20 @@ async function gerarEnderecos(nomeMapa) {
     const div = document.createElement("div");
     div.className = "container_end" + (isAnc ? " anciao" : "");
 
+    const cabeca = document.createElement("div");
+    cabeca.className = "cabeca-endereco";
+
+    const selo = document.createElement("span");
+    selo.className = "selo-territorio";
+    selo.textContent = i + 1;
+
     const titulo = document.createElement("h4");
-    titulo.textContent = `${i + 1}. ${textoEndereco}`;
+    titulo.textContent = textoEndereco;
+
+    cabeca.append(selo, titulo);
 
     const ultimaVisita = document.createElement("p");
-    ultimaVisita.style.fontSize = "13px";
-    ultimaVisita.style.fontWeight = "500";
+    ultimaVisita.className = "ultima-visita";
     ultimaVisita.style.color = corTexto;
     ultimaVisita.textContent = `⏱ Última visita: ${diasDesde === null ? "Sem registro" : `${diasDesde} dia${diasDesde !== 1 ? "s" : ""} atrás`}`;
 
@@ -112,12 +120,12 @@ async function gerarEnderecos(nomeMapa) {
 
     const btnEncontrado = document.createElement("button");
     btnEncontrado.className = "btn-verde";
-    btnEncontrado.textContent = "✔ Encontrado";
+    btnEncontrado.innerHTML = "✔ Encontrado";
     btnEncontrado.addEventListener("click", () => handleSubmit("Encontrado", nomeMapa, enderecoOriginal, [btnEncontrado, btnNaoEncontrado]));
 
     const btnNaoEncontrado = document.createElement("button");
     btnNaoEncontrado.className = "btn-vermelho";
-    btnNaoEncontrado.textContent = "✖ Não encontrado";
+    btnNaoEncontrado.innerHTML = "✖ Não encontrado";
     btnNaoEncontrado.addEventListener("click", () => handleSubmit("Não encontrado", nomeMapa, enderecoOriginal, [btnEncontrado, btnNaoEncontrado]));
 
     const linkMaps = document.createElement("a");
@@ -125,11 +133,11 @@ async function gerarEnderecos(nomeMapa) {
     linkMaps.target = "_blank";
     const btnMaps = document.createElement("button");
     btnMaps.className = "btn-endereco";
-    btnMaps.textContent = "🗺 Maps";
+    btnMaps.innerHTML = "🗺 Maps";
     linkMaps.appendChild(btnMaps);
 
     entradas.append(btnEncontrado, btnNaoEncontrado, linkMaps);
-    div.append(titulo, ultimaVisita, entradas);
+    div.append(cabeca, ultimaVisita, entradas);
     container.appendChild(div);
   });
 }
@@ -315,25 +323,6 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.style.display = "none";
   });
 });
-
-// ==========================
-// CSS DO SPINNER (inline)
-// ==========================
-const spinnerStyle = document.createElement("style");
-spinnerStyle.innerHTML = `
-.spinner {
-  border: 6px solid #e0dce9;
-  border-top: 6px solid #5c3d89;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}`;
-document.head.appendChild(spinnerStyle);
 
 // ==========================
 // PWA: registra o service worker e cuida da fila offline
