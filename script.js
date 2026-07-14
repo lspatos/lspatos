@@ -4,6 +4,10 @@ const proxyURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
 // Variável global para o nome do responsável
 let responsavelAtual = localStorage.getItem("responsavelLS") || "";
 
+function removerAcentos(str) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 // ==========================
 // GERA OS ENDEREÇOS DINAMICAMENTE VIA PLANILHA + TEMPO DE VISITA
 // ==========================
@@ -66,6 +70,7 @@ async function gerarEnderecos(nomeMapa) {
     const enderecoOriginal = r.Endereco || "";
     const restricao = (r.Restricao || "").trim();
     const temRestricao = restricao.length > 0;
+    const emAnalise = removerAcentos(restricao).toUpperCase().includes("EM ANALISE");
 
     // 🔹 Busca última visita (filtragem local)
     // Nota: a aba "mapas" usa a coluna "Endereco" (sem cedilha),
@@ -95,7 +100,7 @@ async function gerarEnderecos(nomeMapa) {
     // 🔹 Monta o card via DOM (sem onclick com strings interpoladas),
     // assim endereços com aspas, apóstrofos ou acentos nunca quebram o botão
     const div = document.createElement("div");
-    div.className = "container_end" + (temRestricao ? " anciao" : "");
+    div.className = "container_end" + (emAnalise ? " em-analise" : (temRestricao ? " restrito" : ""));
 
     const cabeca = document.createElement("div");
     cabeca.className = "cabeca-endereco";
@@ -113,6 +118,23 @@ async function gerarEnderecos(nomeMapa) {
     ultimaVisita.className = "ultima-visita";
     ultimaVisita.style.color = corTexto;
     ultimaVisita.textContent = `⏱ Última visita: ${diasDesde === null ? "Sem registro" : `${diasDesde} dia${diasDesde !== 1 ? "s" : ""} atrás`}`;
+
+    // Botão discreto de alerta de mudança/falecimento (em qualquer endereço, mesmo já em análise)
+    const btnAlerta = document.createElement("button");
+    btnAlerta.className = "btn-alerta-mudanca";
+    btnAlerta.title = "Avisar mudança ou falecimento";
+    btnAlerta.innerHTML = "⚠";
+    btnAlerta.addEventListener("click", () => abrirPopoverAlerta(nomeMapa, enderecoOriginal));
+    div.appendChild(btnAlerta);
+
+    if (emAnalise) {
+      const badge = document.createElement("div");
+      badge.className = "badge-analise";
+      badge.innerHTML = "⚠ Endereço em análise — Provável mudança";
+      div.append(cabeca, badge);
+      container.appendChild(div);
+      return; // não mostra botões de Encontrado/Não encontrado nem restrição extra
+    }
 
     let selRestricao = null;
     if (temRestricao) {
@@ -269,6 +291,69 @@ async function handleSubmit(status, setor, endereco, botoes = []) {
     }
   } finally {
     botoes.forEach(b => b.disabled = false);
+  }
+}
+
+// ==========================
+// ALERTA DE MUDANÇA / FALECIMENTO
+// ==========================
+function abrirPopoverAlerta(mapa, endereco) {
+  const overlay = document.createElement("div");
+  overlay.className = "popover-alerta";
+
+  const opcoes = [
+    { texto: "🏙️ Mudou-se dentro de Patos", valor: "Mudou-se dentro de Patos" },
+    { texto: "🚚 Mudou-se para outra cidade", valor: "Mudou-se para outra cidade" },
+    { texto: "🕊️ Faleceu", valor: "Faleceu" }
+  ];
+
+  overlay.innerHTML = `
+    <div class="conteudo">
+      <h3>Avisar sobre este endereço</h3>
+      <p>Isso ajuda a manter os mapas atualizados. Selecione o motivo:</p>
+      ${opcoes.map((o, i) => `<button class="opcao" data-i="${i}">${o.texto}</button>`).join("")}
+      <button class="cancelar">Cancelar</button>
+    </div>`;
+
+  overlay.querySelectorAll(".opcao").forEach((btn, i) => {
+    btn.addEventListener("click", () => {
+      overlay.remove();
+      enviarAlerta(mapa, endereco, opcoes[i].valor);
+    });
+  });
+  overlay.querySelector(".cancelar").addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+  document.body.appendChild(overlay);
+}
+
+async function enviarAlerta(mapa, endereco, motivo) {
+  showToast("⏳ Enviando aviso...");
+  try {
+    const response = await fetch(proxyURL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        acao: "alerta",
+        mapa,
+        endereco,
+        motivo,
+        responsavel: responsavelAtual || "Não identificado"
+      })
+    });
+    const data = await response.json();
+
+    if (data.status === "ja_registrado") {
+      showToast("ℹ Você já avisou sobre esse endereço antes.");
+    } else if (data.marcado) {
+      showToast("⚠ Endereço atingiu 3 avisos e foi marcado para análise.");
+      gerarEnderecos(nomeMapa); // recarrega a lista pra já mostrar o novo estado
+    } else {
+      showToast("✅ Aviso registrado. Obrigado por ajudar a manter os mapas atualizados!");
+    }
+  } catch (err) {
+    console.error("Erro ao enviar alerta:", err);
+    showToast("📡 Sem conexão agora. Tente avisar de novo daqui a pouco.");
   }
 }
 
