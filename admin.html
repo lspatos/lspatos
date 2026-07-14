@@ -154,6 +154,13 @@
       <span id="contagemRegistros" style="font-size:13px; color:var(--cinza-400); font-family:var(--fonte-dado);"></span>
     </div>
 
+    <div class="filtros-tabela">
+      <input type="search" id="buscaEndereco" placeholder="🔎 Buscar por endereço, mapa ou restrição...">
+      <select id="filtroMapaAdmin">
+        <option value="">Todos os mapas</option>
+      </select>
+    </div>
+
     <div class="tabela-scroll">
       <table class="tabela-dados">
         <thead>
@@ -200,6 +207,15 @@
   .cartao-alerta .acoes-alerta { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .cartao-alerta .acoes-alerta .btn { font-size: 13px; padding: 9px 12px; min-height: 40px; }
   .sem-alertas { color: var(--cinza-400); font-size: 14px; padding: 10px 4px; }
+
+  .filtros-tabela {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .filtros-tabela input[type="search"] { flex: 1 1 260px; }
+  .filtros-tabela select { flex: 0 1 200px; }
 </style>
 
 <script>
@@ -374,29 +390,63 @@
 
       if (dados.erro && dados.erro.includes("Sessão")) return logout();
 
-      const tbody = document.getElementById("tabelaMapas");
-      tbody.innerHTML = "";
       registrosAtuais = dados.registros || [];
-      document.getElementById("contagemRegistros").textContent = `${registrosAtuais.length} endereços`;
-
-      registrosAtuais.forEach((item, i) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHTML(item.ID || "")}</td>
-          <td>${escapeHTML(item.Mapa || "")}</td>
-          <td>${escapeHTML(item.Endereco || "")}</td>
-          <td>${escapeHTML(item.Restricao || "")}</td>
-          <td class="col-acoes">
-            <button class="btn btn-secundario btn-icone" onclick="editar(${i})" title="Editar">✏️</button>
-            <button class="btn btn-perigo btn-icone" onclick="excluir('${item.ID}')" title="Excluir">🗑️</button>
-          </td>`;
-        tbody.appendChild(tr);
-      });
+      preencherFiltroMapaAdmin();
+      renderizarTabelaMapas();
     } catch (err) {
       console.error(err);
       alert("Erro ao carregar dados.");
     }
   }
+
+  function preencherFiltroMapaAdmin() {
+    const select = document.getElementById("filtroMapaAdmin");
+    const valorAtual = select.value;
+    const nomes = [...new Set(registrosAtuais.map(r => (r.Mapa || "").trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+    select.innerHTML = `<option value="">Todos os mapas</option>` +
+      nomes.map(n => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`).join("");
+    select.value = valorAtual; // mantém a seleção ao recarregar
+  }
+
+  function renderizarTabelaMapas() {
+    const busca = (document.getElementById("buscaEndereco").value || "").trim().toLowerCase();
+    const mapaFiltro = document.getElementById("filtroMapaAdmin").value;
+
+    const filtrados = registrosAtuais.filter(item => {
+      if (mapaFiltro && (item.Mapa || "").trim() !== mapaFiltro) return false;
+      if (busca) {
+        const alvo = `${item.Mapa || ""} ${item.Endereco || ""} ${item.Restricao || ""}`.toLowerCase();
+        if (!alvo.includes(busca)) return false;
+      }
+      return true;
+    });
+
+    document.getElementById("contagemRegistros").textContent =
+      busca || mapaFiltro ? `${filtrados.length} de ${registrosAtuais.length} endereços` : `${registrosAtuais.length} endereços`;
+
+    const tbody = document.getElementById("tabelaMapas");
+
+    if (filtrados.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--cinza-400);">Nenhum endereço encontrado.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtrados.map(item => `
+      <tr>
+        <td>${escapeHTML(item.ID || "")}</td>
+        <td>${escapeHTML(item.Mapa || "")}</td>
+        <td>${escapeHTML(item.Endereco || "")}</td>
+        <td>${escapeHTML(item.Restricao || "")}</td>
+        <td class="col-acoes">
+          <button class="btn btn-secundario btn-icone" onclick="editarPorId('${item.ID}')" title="Editar">✏️</button>
+          <button class="btn btn-perigo btn-icone" onclick="excluir('${item.ID}')" title="Excluir">🗑️</button>
+        </td>
+      </tr>`).join("");
+  }
+
+  document.getElementById("buscaEndereco").addEventListener("input", renderizarTabelaMapas);
+  document.getElementById("filtroMapaAdmin").addEventListener("change", renderizarTabelaMapas);
 
   async function salvar() {
     const mapa = document.getElementById("mapa").value;
@@ -445,8 +495,8 @@
     }
   }
 
-  function editar(indice) {
-    const item = registrosAtuais[indice];
+  function editarPorId(id) {
+    const item = registrosAtuais.find(r => String(r.ID) === String(id));
     if (!item) return;
     document.getElementById("id").value = item.ID || "";
     document.getElementById("mapa").value = item.Mapa || "";
