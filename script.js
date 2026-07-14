@@ -16,88 +16,128 @@ async function gerarEnderecos(nomeMapa) {
     </div>
   `;
 
+  let dadosMapas, dadosHistorico;
+
   try {
-    // 🔹 Executa as duas chamadas em paralelo
     const [resMapas, resHistorico] = await Promise.all([
       fetch(`${proxyURL}?acao=read&aba=mapas`),
       fetch(`${proxyURL}?acao=read&aba=Respostas`)
     ]);
 
-    const [dadosMapas, dadosHistorico] = await Promise.all([
+    if (!resMapas.ok || !resHistorico.ok) {
+      throw new Error(`SERVIDOR:${resMapas.status || resHistorico.status}`);
+    }
+
+    [dadosMapas, dadosHistorico] = await Promise.all([
       resMapas.json(),
       resHistorico.json()
     ]);
+  } catch (err) {
+    console.error("Erro ao buscar dados:", err);
+    let mensagem = "❌ Erro ao carregar endereços.";
+    if (err instanceof TypeError) {
+      // fetch lança TypeError quando não há conexão / servidor inacessível
+      mensagem = "📡 Sem conexão com o servidor. Verifique sua internet e tente novamente.";
+    } else if (String(err.message).startsWith("SERVIDOR:")) {
+      mensagem = "⚠ O servidor não respondeu corretamente. Tente novamente em instantes.";
+    }
+    container.innerHTML = `<p style='text-align:center;'>${mensagem}</p>`;
+    return;
+  }
 
-    if (!dadosMapas?.registros) throw new Error("Dados inválidos");
+  if (!dadosMapas?.registros) {
+    container.innerHTML = "<p style='text-align:center;'>⚠ Os dados recebidos estão em formato inesperado. Avise o administrador.</p>";
+    return;
+  }
 
-    const enderecosDoMapa = dadosMapas.registros.filter(
-      r => (r.Mapa || "").trim() === nomeMapa
-    );
+  const enderecosDoMapa = dadosMapas.registros.filter(
+    r => (r.Mapa || "").trim() === nomeMapa
+  );
 
-    if (enderecosDoMapa.length === 0) {
-      container.innerHTML = "<p style='text-align:center;'>Nenhum endereço cadastrado para este mapa.</p>";
-      return;
+  if (enderecosDoMapa.length === 0) {
+    container.innerHTML = "<p style='text-align:center;'>Nenhum endereço cadastrado para este mapa.</p>";
+    return;
+  }
+
+  const respostas = dadosHistorico.registros || [];
+  container.innerHTML = "";
+
+  enderecosDoMapa.forEach((r, i) => {
+    const enderecoOriginal = r.Endereco || "";
+    const restricao = (r.Restricao || "").toUpperCase();
+    const isAnc = restricao.includes("ANCI") || restricao.includes("IDOSO");
+    const textoEndereco = isAnc ? `IR ANCIÃO — ${enderecoOriginal}` : enderecoOriginal;
+
+    // 🔹 Busca última visita (filtragem local)
+    // Nota: a aba "mapas" usa a coluna "Endereco" (sem cedilha),
+    // mas a aba "Respostas" usa "Endereço" (com cedilha) - são cabeçalhos diferentes entre as abas.
+    const historicoEndereco = respostas
+      .filter(v =>
+        (v.Endereço || v.Endereco || "") === enderecoOriginal &&
+        (v.Setor || "") === nomeMapa
+      )
+      .sort((a, b) => new Date(b["Data e Hora"]) - new Date(a["Data e Hora"]));
+
+    let diasDesde = null;
+    if (historicoEndereco.length > 0) {
+      const ultimaData = new Date(historicoEndereco[0]["Data e Hora"]);
+      const diffMs = Date.now() - ultimaData.getTime();
+      diasDesde = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     }
 
-    const respostas = dadosHistorico.registros || [];
-    container.innerHTML = "";
+    // 🔹 Define cor conforme tempo
+    let corTexto = "#555";
+    if (diasDesde !== null) {
+      if (diasDesde > 30) corTexto = isAnc ? "#ffe4e1" : "#e53935";
+      else if (diasDesde >= 15) corTexto = isAnc ? "#fff3cd" : "#f9a825";
+      else corTexto = isAnc ? "#c8e6c9" : "#388e3c";
+    }
 
-    enderecosDoMapa.forEach((r, i) => {
-      const enderecoOriginal = r.Endereco || r.Endereço || "";
-      const restricao = (r.Restrico || r.Restricao || "").toUpperCase();
-      const isAnc = restricao.includes("ANCI") || restricao.includes("IDOSO");
-      const textoEndereco = isAnc ? `IR ANCIÃO — ${enderecoOriginal}` : enderecoOriginal;
+    // 🔹 Monta o card via DOM (sem onclick com strings interpoladas),
+    // assim endereços com aspas, apóstrofos ou acentos nunca quebram o botão
+    const div = document.createElement("div");
+    div.className = "container_end" + (isAnc ? " anciao" : "");
 
-      // 🔹 Busca última visita (filtragem local)
-      const historicoEndereco = respostas
-        .filter(v =>
-          (v.Endereco || v.Endereço) === enderecoOriginal &&
-          (v.Setor || v.setor) === nomeMapa
-        )
-        .sort((a, b) => new Date(b["Data e Hora"]) - new Date(a["Data e Hora"]));
+    const titulo = document.createElement("h4");
+    titulo.textContent = `${i + 1}. ${textoEndereco}`;
 
-      let diasDesde = null;
-      if (historicoEndereco.length > 0) {
-        const ultimaData = new Date(historicoEndereco[0]["Data e Hora"]);
-        const diffMs = Date.now() - ultimaData.getTime();
-        diasDesde = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      }
+    const ultimaVisita = document.createElement("p");
+    ultimaVisita.style.fontSize = "13px";
+    ultimaVisita.style.fontWeight = "500";
+    ultimaVisita.style.color = corTexto;
+    ultimaVisita.textContent = `⏱ Última visita: ${diasDesde === null ? "Sem registro" : `${diasDesde} dia${diasDesde !== 1 ? "s" : ""} atrás`}`;
 
-      // 🔹 Define cor conforme tempo
-      let corTexto = "#555";
-      if (diasDesde !== null) {
-        if (diasDesde > 30) corTexto = isAnc ? "#ffe4e1" : "#e53935"; // vermelho claro em ancião
-        else if (diasDesde >= 15) corTexto = isAnc ? "#fff3cd" : "#f9a825"; // amarelo claro em ancião
-        else corTexto = isAnc ? "#c8e6c9" : "#388e3c"; // verde claro em ancião
-      }
+    const entradas = document.createElement("div");
+    entradas.className = "entradas";
 
-      const div = document.createElement("div");
-      div.className = "container_end" + (isAnc ? " anciao" : "");
-      div.innerHTML = `
-        <h4>${i + 1}. ${textoEndereco}</h4>
-        <p style="font-size:13px; font-weight:500; color:${corTexto};">
-          ⏱ Última visita: ${diasDesde === null ? "Sem registro" : `${diasDesde} dia${diasDesde !== 1 ? "s" : ""} atrás`}
-        </p>
-        <div class="entradas">
-          <button onclick="handleSubmit('Encontrado', '${nomeMapa}', \`${enderecoOriginal}\`)" class="btn-verde">✔ Encontrado</button>
-          <button onclick="handleSubmit('Não encontrado', '${nomeMapa}', \`${enderecoOriginal}\`)" class="btn-vermelho">✖ Não encontrado</button>
-          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoOriginal)}" target="_blank">
-            <button class="btn-endereco">🗺 Maps</button>
-          </a>
-        </div>
-      `;
-      container.appendChild(div);
-    });
-  } catch (err) {
-    console.error("Erro ao carregar endereços:", err);
-    container.innerHTML = "<p style='text-align:center;'>❌ Erro ao carregar endereços.</p>";
-  }
+    const btnEncontrado = document.createElement("button");
+    btnEncontrado.className = "btn-verde";
+    btnEncontrado.textContent = "✔ Encontrado";
+    btnEncontrado.addEventListener("click", () => handleSubmit("Encontrado", nomeMapa, enderecoOriginal, [btnEncontrado, btnNaoEncontrado]));
+
+    const btnNaoEncontrado = document.createElement("button");
+    btnNaoEncontrado.className = "btn-vermelho";
+    btnNaoEncontrado.textContent = "✖ Não encontrado";
+    btnNaoEncontrado.addEventListener("click", () => handleSubmit("Não encontrado", nomeMapa, enderecoOriginal, [btnEncontrado, btnNaoEncontrado]));
+
+    const linkMaps = document.createElement("a");
+    linkMaps.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoOriginal)}`;
+    linkMaps.target = "_blank";
+    const btnMaps = document.createElement("button");
+    btnMaps.className = "btn-endereco";
+    btnMaps.textContent = "🗺 Maps";
+    linkMaps.appendChild(btnMaps);
+
+    entradas.append(btnEncontrado, btnNaoEncontrado, linkMaps);
+    div.append(titulo, ultimaVisita, entradas);
+    container.appendChild(div);
+  });
 }
 
 // ==========================
 // ENVIO PARA GOOGLE SHEETS
 // ==========================
-async function handleSubmit(status, setor, endereco) {
+async function handleSubmit(status, setor, endereco, botoes = []) {
   const dataHora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
   const payload = {
@@ -110,6 +150,7 @@ async function handleSubmit(status, setor, endereco) {
   };
 
   showToast("⏳ Enviando...");
+  botoes.forEach(b => b.disabled = true);
 
   try {
     const response = await fetch(proxyURL, {
@@ -131,10 +172,16 @@ async function handleSubmit(status, setor, endereco) {
     }
 
     if (ok) showToast("✅ Resposta registrada com sucesso!");
-    else showToast("⚠ Erro no envio.");
+    else showToast("⚠ O servidor recebeu, mas retornou um erro. Tente novamente.");
   } catch (error) {
     console.error("Erro ao enviar:", error);
-    showToast("❌ Falha na conexão.");
+    if (error instanceof TypeError) {
+      showToast("📡 Sem conexão. Verifique sua internet e tente enviar de novo.");
+    } else {
+      showToast("❌ Falha ao enviar. Tente novamente.");
+    }
+  } finally {
+    botoes.forEach(b => b.disabled = false);
   }
 }
 
