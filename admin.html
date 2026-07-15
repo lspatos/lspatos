@@ -121,6 +121,16 @@
     </div>
 
     <div class="cartao form-cartao">
+      <h3>📦 Encerrar ciclo de visita (superintendente)</h3>
+      <p style="font-size:13.5px; color:var(--cinza-400); margin-bottom:12px;">
+        Arquiva tudo que está hoje na aba de respostas em uma nova aba "VISITA FINALIZADA",
+        e deixa a aba de respostas zerada para o próximo ciclo. Use isso depois que o S-13 já
+        tiver sido gerado e conferido com o superintendente.
+      </p>
+      <button id="finalizarVisitaBtn" class="btn btn-perigo" onclick="finalizarVisita()">📦 Encerrar ciclo agora</button>
+    </div>
+
+    <div class="cartao form-cartao">
       <h3>Cadastrar / editar território</h3>
       <div class="grade-form">
         <div class="campo">
@@ -522,6 +532,34 @@
   document.getElementById("limparBtn").onclick = limpar;
 
   // === Navegação ===
+  async function finalizarVisita() {
+    if (!token) return alert("Sessão expirada.");
+    if (!confirm("Isso vai arquivar todas as respostas atuais em uma nova aba \"VISITA FINALIZADA\" e zerar a aba de respostas para o próximo ciclo. Confirma?")) return;
+
+    const btn = document.getElementById("finalizarVisitaBtn");
+    btn.disabled = true;
+    btn.textContent = "⏳ Encerrando...";
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "finalizar-visita" })
+      });
+      const data = await res.json();
+      if (data.status === "ok") {
+        alert(`Ciclo encerrado! ${data.linhasArquivadas} resposta(s) arquivada(s) em "${data.abaCriada}". A aba de respostas está pronta para o novo ciclo.`);
+      } else {
+        alert(data.erro || "Não foi possível encerrar o ciclo.");
+      }
+    } catch (err) {
+      alert("Erro ao encerrar o ciclo. Verifique sua conexão e tente novamente.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "📦 Encerrar ciclo agora";
+    }
+  }
+
   function abrirPainel() {
     if (!token) return alert("Sessão expirada.");
     window.open("painel.html", "_blank");
