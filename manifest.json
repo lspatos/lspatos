@@ -2,7 +2,7 @@
   "name": "LS Mapas - Patos de Minas",
   "short_name": "LS Mapas",
   "description": "Controle de territórios de pregação - Congregação de Libras Patos de Minas",
-  "start_url": "/index.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
