@@ -20,7 +20,7 @@ async function gerarEnderecos(nomeMapa) {
     </div>
   `;
 
-  let dadosMapas, dadosHistorico;
+  let dadosMapas, dadosHistorico, dadosAlertas;
 
   try {
     const [resMapas, resHistorico] = await Promise.all([
@@ -36,6 +36,15 @@ async function gerarEnderecos(nomeMapa) {
       resMapas.json(),
       resHistorico.json()
     ]);
+
+    // Alertas (avisos de mudança/falecimento) - se falhar, não impede o resto de carregar,
+    // já que é só um complemento informativo (aba pode nem existir ainda).
+    try {
+      const resAlertas = await fetch(`${proxyURL}?acao=read&aba=Alertas`);
+      dadosAlertas = resAlertas.ok ? await resAlertas.json() : { registros: [] };
+    } catch {
+      dadosAlertas = { registros: [] };
+    }
   } catch (err) {
     console.error("Erro ao buscar dados:", err);
     let mensagem = "❌ Erro ao carregar endereços.";
@@ -64,6 +73,18 @@ async function gerarEnderecos(nomeMapa) {
   }
 
   const respostas = dadosHistorico.registros || [];
+
+  // Agrupa os avisos de mudança/falecimento por endereço, só pra exibir
+  // contagem + motivos ao usuário comum - NUNCA o nome de quem reportou.
+  const alertasPorEndereco = {};
+  (dadosAlertas.registros || [])
+    .filter(a => (a.Mapa || "").trim() === nomeMapa)
+    .forEach(a => {
+      const end = (a.Endereco || "").trim();
+      if (!alertasPorEndereco[end]) alertasPorEndereco[end] = [];
+      alertasPorEndereco[end].push(a.Motivo || "");
+    });
+
   container.innerHTML = "";
 
   enderecosDoMapa.forEach((r, i) => {
@@ -135,6 +156,15 @@ async function gerarEnderecos(nomeMapa) {
       selRestricao.textContent = `⚠ ${restricao}`;
     }
 
+    const motivosAnteriores = alertasPorEndereco[enderecoOriginal] || [];
+    let resumoAlertas = null;
+    if (motivosAnteriores.length > 0) {
+      const motivosUnicos = [...new Set(motivosAnteriores)];
+      resumoAlertas = document.createElement("p");
+      resumoAlertas.className = "resumo-alertas";
+      resumoAlertas.textContent = `⚠ ${motivosAnteriores.length} aviso${motivosAnteriores.length !== 1 ? "s" : ""} anterior${motivosAnteriores.length !== 1 ? "es" : ""}: ${motivosUnicos.join(", ")}`;
+    }
+
     const entradas = document.createElement("div");
     entradas.className = "entradas";
 
@@ -157,11 +187,12 @@ async function gerarEnderecos(nomeMapa) {
     btnReportar.className = "btn-reportar";
     btnReportar.innerHTML = "⚠ Reportar";
     btnReportar.title = "Avisar mudança ou falecimento";
-    btnReportar.addEventListener("click", () => abrirPopoverAlerta(nomeMapa, enderecoOriginal));
+    btnReportar.addEventListener("click", () => abrirPopoverAlerta(nomeMapa, enderecoOriginal, motivosAnteriores));
 
     entradas.append(btnEncontrado, btnNaoEncontrado, btnMaps, btnReportar);
     div.append(cabeca, ultimaVisita);
     if (selRestricao) div.append(selRestricao);
+    if (resumoAlertas) div.append(resumoAlertas);
     div.append(entradas);
     container.appendChild(div);
   });
@@ -324,7 +355,7 @@ function escapeHTMLScript(str) {
 // ==========================
 // ALERTA DE MUDANÇA / FALECIMENTO
 // ==========================
-function abrirPopoverAlerta(mapa, endereco) {
+function abrirPopoverAlerta(mapa, endereco, motivosAnteriores = []) {
   const overlay = document.createElement("div");
   overlay.className = "popover-alerta";
 
@@ -334,9 +365,14 @@ function abrirPopoverAlerta(mapa, endereco) {
     { texto: "🕊️ Faleceu", valor: "Faleceu" }
   ];
 
+  const avisoAnterior = motivosAnteriores.length > 0
+    ? `<p class="aviso-anterior-popover">⚠ Já reportado ${motivosAnteriores.length}x antes: ${[...new Set(motivosAnteriores)].join(", ")}</p>`
+    : "";
+
   overlay.innerHTML = `
     <div class="conteudo">
       <h3>Avisar sobre este endereço</h3>
+      ${avisoAnterior}
       <p>Isso ajuda a manter os mapas atualizados. Seu nome não precisa ser o do dirigente da sessão — qualquer publicador presente no campo pode reportar.</p>
       <input type="text" id="nomeReportante" placeholder="Seu nome" style="margin-bottom:14px;">
       <p style="margin-top:-8px;">Motivo:</p>
