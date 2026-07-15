@@ -8,6 +8,18 @@ function removerAcentos(str) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+// Parser explícito de "dd/mm/aaaa, HH:mm:ss" - o construtor nativo `new Date(string)`
+// interpreta esse formato de forma ambígua (ex: confunde dia com mês quando dia <= 12,
+// e descarta como "Invalid Date" quando dia > 12). Usar sempre esta função em vez de
+// `new Date(texto)` para qualquer data vinda da planilha.
+function parseDataBR(str) {
+  if (!str) return new Date(NaN);
+  const m = String(str).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return new Date(str);
+  const [, dia, mes, ano, hora, min, seg] = m;
+  return new Date(+ano, +mes - 1, +dia, +hora, +min, seg ? +seg : 0);
+}
+
 // ==========================
 // GERA OS ENDEREÇOS DINAMICAMENTE VIA PLANILHA + TEMPO DE VISITA
 // ==========================
@@ -101,11 +113,11 @@ async function gerarEnderecos(nomeMapa) {
         (v.Endereço || v.Endereco || "") === enderecoOriginal &&
         (v.Setor || "") === nomeMapa
       )
-      .sort((a, b) => new Date(b["Data e Hora"]) - new Date(a["Data e Hora"]));
+      .sort((a, b) => parseDataBR(b["Data e Hora"]) - parseDataBR(a["Data e Hora"]));
 
     let diasDesde = null;
     if (historicoEndereco.length > 0) {
-      const ultimaData = new Date(historicoEndereco[0]["Data e Hora"]);
+      const ultimaData = parseDataBR(historicoEndereco[0]["Data e Hora"]);
       const diffMs = Date.now() - ultimaData.getTime();
       diasDesde = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     }
