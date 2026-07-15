@@ -148,13 +148,10 @@ async function gerarEnderecos(nomeMapa) {
     btnNaoEncontrado.innerHTML = "✖ Não encontrado";
     btnNaoEncontrado.addEventListener("click", () => handleSubmit("Não encontrado", nomeMapa, enderecoOriginal, [btnEncontrado, btnNaoEncontrado]));
 
-    const linkMaps = document.createElement("a");
-    linkMaps.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoOriginal)}`;
-    linkMaps.target = "_blank";
     const btnMaps = document.createElement("button");
     btnMaps.className = "btn-endereco";
     btnMaps.innerHTML = "🗺 Maps";
-    linkMaps.appendChild(btnMaps);
+    btnMaps.addEventListener("click", () => abrirMapaEmbutido(enderecoOriginal));
 
     const btnReportar = document.createElement("button");
     btnReportar.className = "btn-reportar";
@@ -162,7 +159,7 @@ async function gerarEnderecos(nomeMapa) {
     btnReportar.title = "Avisar mudança ou falecimento";
     btnReportar.addEventListener("click", () => abrirPopoverAlerta(nomeMapa, enderecoOriginal));
 
-    entradas.append(btnEncontrado, btnNaoEncontrado, linkMaps, btnReportar);
+    entradas.append(btnEncontrado, btnNaoEncontrado, btnMaps, btnReportar);
     div.append(cabeca, ultimaVisita);
     if (selRestricao) div.append(selRestricao);
     div.append(entradas);
@@ -290,6 +287,37 @@ async function handleSubmit(status, setor, endereco, botoes = []) {
   } finally {
     botoes.forEach(b => b.disabled = false);
   }
+}
+
+// ==========================
+// MAPA EMBUTIDO (sem sair do site)
+// ==========================
+function abrirMapaEmbutido(endereco) {
+  const overlay = document.createElement("div");
+  overlay.className = "popover-mapa";
+
+  const enderecoCodificado = encodeURIComponent(endereco);
+  const urlEmbed = `https://maps.google.com/maps?q=${enderecoCodificado}&z=16&output=embed`;
+  const urlApp = `https://www.google.com/maps/search/?api=1&query=${enderecoCodificado}`;
+
+  overlay.innerHTML = `
+    <div class="conteudo-mapa">
+      <div class="cabecalho-mapa">
+        <h3>📍 ${escapeHTMLScript(endereco)}</h3>
+        <button class="fechar-mapa" aria-label="Fechar">✕</button>
+      </div>
+      <iframe src="${urlEmbed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <a href="${urlApp}" target="_blank" class="btn btn-secundario btn-bloco">🧭 Abrir no app do Google Maps</a>
+    </div>`;
+
+  overlay.querySelector(".fechar-mapa").addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+  document.body.appendChild(overlay);
+}
+
+function escapeHTMLScript(str) {
+  return String(str).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
 // ==========================
