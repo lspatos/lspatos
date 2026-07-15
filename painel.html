@@ -147,7 +147,8 @@ if (!token) {
 }
 
 let dadosGlobais = [];       // apenas o ciclo atual (aba "Respostas") - usado no gráfico/tabela principal
-let historicoCompleto = [];  // Respostas + todas as abas de backup - usado pra média de ciclo e "mapas antigos"
+let historicoCompleto = [];  // Respostas + todas as abas de backup - usado pra "mapas antigos" e "melhor horário"
+let backupsPorAba = [];      // registros de cada aba "VISITA FINALIZADA ..." separados (não juntados) - usado pra achar as fronteiras reais dos ciclos
 let mapasAtivos = [];         // lista real de territórios cadastrados hoje (aba "mapas")
 let graficoPizza, graficoCiclos;
 
@@ -184,6 +185,7 @@ async function carregarDados() {
       )
     );
 
+    backupsPorAba = nomesBackup.map((nome, i) => ({ nome, registros: respostasBackup[i] }));
     historicoCompleto = [...dadosGlobais, ...respostasBackup.flat()];
 
     document.getElementById("status").style.display = "none";
@@ -249,19 +251,10 @@ function atualizarPainel(mapaSelecionado) {
 }
 
 function calcularIndicadores() {
-  // Usa o histórico COMPLETO (ciclo atual + abas de backup), pra não cortar
-  // um ciclo no meio por causa do reset de 6 em 6 meses.
-  const registros = historicoCompleto.map(d => ({
-    setor: d.Setor || d.setor,
-    data: parseDataBR(d["Data e Hora"] || d.dataHora)
-  })).sort((a, b) => a.data - b.data);
-
-  // Usa a lista real de territórios cadastrados hoje (aba "mapas") como referência
-  // de um "ciclo completo", em vez de inferir isso do histórico de respostas
-  // (que pode ter tido mapas adicionados/removidos ao longo do tempo).
   const totalMapasAtivos = mapasAtivos.length;
+  const temAlgumDado = dadosGlobais.length > 0 || backupsPorAba.some(b => b.registros.length > 0);
 
-  if (totalMapasAtivos === 0 || registros.length === 0) {
+  if (totalMapasAtivos === 0 || !temAlgumDado) {
     document.getElementById("ultimoCiclo").textContent = "-";
     document.getElementById("mediaCiclos").textContent = "-";
     document.getElementById("mapasRestantes").textContent = "-";
@@ -270,26 +263,66 @@ function calcularIndicadores() {
     return;
   }
 
-  let visitados = new Set();
-  let inicioCiclo = registros[0].data;
-  const ciclos = [];
+  // Cada aba "VISITA FINALIZADA ..." é um ciclo JÁ FECHADO de verdade (fechado pelo
+  // botão "Encerrar ciclo" no admin), então usamos essas abas como fronteira real
+  // em vez de tentar adivinhar onde um ciclo termina contando mapas distintos
+  // (isso misturava dados de ciclos diferentes e distorcia os números).
+  const ciclosFechados = backupsPorAba
+    .map(b => {
+      const datas = b.registros
+        .map(d => parseDataBR(d["Data e Hora"] || d.dataHora))
+        .filter(d => !isNaN(d));
+      if (datas.length === 0) return null;
+      return { nome: b.nome, registros: b.registros, fim: new Date(Math.max(...datas)) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.fim - b.fim);
 
-  for (let r of registros) {
-    if (mapasAtivos.includes(r.setor)) visitados.add(r.setor);
-    if (visitados.size >= totalMapasAtivos) {
-      const fim = r.data;
-      const duracaoDias = Math.round((fim - inicioCiclo) / (1000 * 60 * 60 * 24));
-      ciclos.push({ inicio: inicioCiclo, fim, duracaoDias });
-      visitados = new Set();
-      inicioCiclo = r.data;
+  const ciclos = [];
+  let fimAnterior = null;
+  ciclosFechados.forEach((c, i) => {
+    let inicio;
+    if (i === 0) {
+      // Não sabemos exatamente quando esse primeiro ciclo começou (é o mais antigo
+      // que temos registro), então usamos a data do registro mais antigo dentro dele.
+      const datasIniciais = c.registros
+        .map(d => parseDataBR(d["Data e Hora"] || d.dataHora))
+        .filter(d => !isNaN(d));
+      inicio = new Date(Math.min(...datasIniciais));
+    } else {
+      inicio = fimAnterior;
     }
-  }
+    const duracaoDias = Math.round((c.fim - inicio) / (1000 * 60 * 60 * 24));
+    ciclos.push({ inicio, fim: c.fim, duracaoDias, nome: c.nome });
+    fimAnterior = c.fim;
+  });
 
   const ultimo = ciclos[ciclos.length - 1];
   const media = ciclos.length ? ciclos.reduce((a, b) => a + b.duracaoDias, 0) / ciclos.length : 0;
+
+  // Ciclo em andamento: começa exatamente onde terminou o último ciclo fechado
+  // (ou, se ainda não existe nenhum ciclo fechado, no primeiro registro do ciclo atual).
+  let inicioCicloAtual;
+  if (fimAnterior) {
+    inicioCicloAtual = fimAnterior;
+  } else {
+    const datasAtuais = dadosGlobais
+      .map(d => parseDataBR(d["Data e Hora"] || d.dataHora))
+      .filter(d => !isNaN(d));
+    inicioCicloAtual = datasAtuais.length ? new Date(Math.min(...datasAtuais)) : new Date();
+  }
+
   const hoje = new Date();
-  const cicloAtualDias = Math.round((hoje - inicioCiclo) / (1000 * 60 * 60 * 24));
-  const restantes = totalMapasAtivos - visitados.size; // "visitados" aqui reflete o ciclo em andamento (ainda não fechado)
+  const cicloAtualDias = Math.round((hoje - inicioCicloAtual) / (1000 * 60 * 60 * 24));
+
+  // Mapas restantes no ciclo atual = territórios ativos que ainda NÃO aparecem
+  // na aba "Respostas" de hoje (o ciclo em andamento, ainda não arquivado).
+  const visitadosAtual = new Set(
+    dadosGlobais
+      .map(d => (d.Setor || d.setor || "").trim())
+      .filter(s => mapasAtivos.includes(s))
+  );
+  const restantes = totalMapasAtivos - visitadosAtual.size;
 
   document.getElementById("ultimoCiclo").textContent = ultimo ? `${ultimo.duracaoDias} dias` : "-";
   document.getElementById("mediaCiclos").textContent = ciclos.length ? `${media.toFixed(1)} dias` : "-";
