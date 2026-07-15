@@ -4,8 +4,8 @@
  * lidos do Worker, pra funcionar mesmo com sinal fraco ou instável.
  */
 
-const CACHE_ESTATICO = 'ls-mapas-estatico-v3';
-const CACHE_DADOS = 'ls-mapas-dados-v3';
+const CACHE_ESTATICO = 'ls-mapas-estatico-v4';
+const CACHE_DADOS = 'ls-mapas-dados-v4';
 
 const ARQUIVOS_ESTATICOS = [
   './',
@@ -43,12 +43,23 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Páginas de administração (não usadas em campo, não precisam de cache offline).
+// Ficar de fora do cache evita o problema recorrente de ver dados/código desatualizado
+// nelas depois de uma atualização.
+const PAGINAS_SEM_CACHE = ['/admin.html', '/painel.html', '/relatorio.html', '/s13.html'];
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
   // Só cuida de leituras (GET). Envios (POST) ficam por conta da fila do app.
   if (req.method !== 'GET') return;
+
+  // Páginas de admin: sempre busca da rede, nunca cacheia (nem serve cache em caso de falha)
+  if (PAGINAS_SEM_CACHE.some(p => url.pathname.endsWith(p))) {
+    event.respondWith(fetch(req, { cache: 'no-store' }));
+    return;
+  }
 
   // Dados do Worker (endereços / respostas): network-first, cai pro cache se não houver sinal
   if (url.hostname.includes('workers.dev')) {
