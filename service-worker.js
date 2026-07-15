@@ -9,7 +9,6 @@ const CACHE_DADOS = 'ls-mapas-dados-v2';
 
 const ARQUIVOS_ESTATICOS = [
   './',
-  './index.html',
   './mapa.html',
   './style.css',
   './script.js',
