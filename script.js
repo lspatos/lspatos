@@ -297,7 +297,7 @@ function abrirMapaEmbutido(endereco) {
   overlay.className = "popover-mapa";
 
   const enderecoCodificado = encodeURIComponent(endereco);
-  const urlEmbed = `https://maps.google.com/maps?q=${enderecoCodificado}&z=16&output=embed`;
+  const urlEmbed = `https://www.google.com/maps?q=${enderecoCodificado}&z=16&output=embed`;
   const urlApp = `https://www.google.com/maps/search/?api=1&query=${enderecoCodificado}`;
 
   overlay.innerHTML = `
@@ -307,6 +307,7 @@ function abrirMapaEmbutido(endereco) {
         <button class="fechar-mapa" aria-label="Fechar">✕</button>
       </div>
       <iframe src="${urlEmbed}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <p style="font-size:12px; color:var(--cinza-400); text-align:center; margin:8px 16px 0;">Se o mapa não aparecer, use o botão abaixo.</p>
       <a href="${urlApp}" target="_blank" class="btn btn-secundario btn-bloco">🧭 Abrir no app do Google Maps</a>
     </div>`;
 
