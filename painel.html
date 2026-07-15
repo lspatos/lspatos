@@ -100,6 +100,15 @@
       <div class="grafico-barras"><canvas id="graficoCiclos"></canvas></div>
     </div>
 
+    <div id="melhorHorario" class="cartao" style="margin:26px 0;">
+      <h3 style="font-size:15px; margin-bottom:6px;">🕒 Melhor dia e horário pra encontrar as pessoas</h3>
+      <p style="font-size:12px; color:var(--cinza-400); margin-bottom:14px;">Calculado com o histórico completo (ciclo atual + backups). Células com poucos registros ficam cinza (amostra pequena demais pra confiar).</p>
+      <p id="resumoMelhorHorario" style="font-size:14px; font-weight:600; color:var(--roxo-700); margin-bottom:14px;"></p>
+      <div class="tabela-scroll">
+        <table class="tabela-dados" id="tabelaHorarios"></table>
+      </div>
+    </div>
+
     <div id="tabela" class="tabela-scroll"></div>
   </main>
 
@@ -154,9 +163,10 @@ async function carregarDados() {
 
     document.getElementById("status").style.display = "none";
     preencherFiltro();
-    atualizarPainel("todos");
-    calcularIndicadores();
-    mostrarMapasAntigos();
+    try { atualizarPainel("todos"); } catch (e) { console.error("Erro no gráfico principal:", e); }
+    try { calcularIndicadores(); } catch (e) { console.error("Erro nos indicadores:", e); }
+    try { mostrarMapasAntigos(); } catch (e) { console.error("Erro em mapas antigos:", e); }
+    try { calcularMelhorHorario(); } catch (e) { console.error("Erro em melhor horário:", e); }
   } catch (err) {
     console.error("Erro:", err);
     document.getElementById("status").textContent = "❌ Erro ao carregar dados.";
@@ -328,6 +338,77 @@ function mostrarMapasAntigos() {
 }
 
 function voltar() { window.location.href = "admin.html"; }
+
+// ==========================
+// MELHOR DIA/HORÁRIO PARA ENCONTRAR AS PESSOAS
+// ==========================
+const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const PERIODOS = ["Manhã", "Tarde", "Noite"];
+const AMOSTRA_MINIMA = 5; // abaixo disso, não confia no percentual (amostra pequena demais)
+
+function periodoDoDia(hora) {
+  if (hora >= 5 && hora < 12) return "Manhã";
+  if (hora >= 12 && hora < 18) return "Tarde";
+  return "Noite"; // 18h-23h59 e madrugada (0h-4h59) juntos, pouco uso no campo
+}
+
+function calcularMelhorHorario() {
+  // Usa o histórico completo (ciclo atual + backups) pra ter uma amostra maior e mais confiável
+  const matriz = {}; // matriz[dia][periodo] = { total, encontrados }
+  DIAS_SEMANA.forEach(d => {
+    matriz[d] = {};
+    PERIODOS.forEach(p => { matriz[d][p] = { total: 0, encontrados: 0 }; });
+  });
+
+  historicoCompleto.forEach(r => {
+    const dataObj = new Date(r["Data e Hora"] || r.dataHora);
+    if (isNaN(dataObj)) return;
+    const dia = DIAS_SEMANA[dataObj.getDay()];
+    const periodo = periodoDoDia(dataObj.getHours());
+    const status = r.Status || r.status || "";
+
+    matriz[dia][periodo].total++;
+    if (status === "Encontrado") matriz[dia][periodo].encontrados++;
+  });
+
+  // Acha a melhor célula (maior % entre as que têm amostra suficiente)
+  let melhorCelula = null;
+  DIAS_SEMANA.forEach(dia => {
+    PERIODOS.forEach(periodo => {
+      const c = matriz[dia][periodo];
+      if (c.total >= AMOSTRA_MINIMA) {
+        const pct = c.encontrados / c.total;
+        if (!melhorCelula || pct > melhorCelula.pct) {
+          melhorCelula = { dia, periodo, pct, total: c.total };
+        }
+      }
+    });
+  });
+
+  const resumo = document.getElementById("resumoMelhorHorario");
+  if (melhorCelula) {
+    resumo.textContent = `📈 Melhor combinação: ${melhorCelula.dia} à ${melhorCelula.periodo.toLowerCase()} — ${(melhorCelula.pct * 100).toFixed(0)}% de sucesso (${melhorCelula.total} visitas no histórico)`;
+  } else {
+    resumo.textContent = "Ainda não há registros suficientes pra apontar uma melhor combinação.";
+  }
+
+  // Monta a tabela dia × período
+  const cabecalho = `<thead><tr><th>Dia</th>${PERIODOS.map(p => `<th>${p}</th>`).join("")}</tr></thead>`;
+  const linhas = DIAS_SEMANA.map(dia => {
+    const celulas = PERIODOS.map(periodo => {
+      const c = matriz[dia][periodo];
+      if (c.total === 0) return `<td style="color:var(--cinza-400);">—</td>`;
+      if (c.total < AMOSTRA_MINIMA) return `<td style="color:var(--cinza-400);">${c.total} visita${c.total !== 1 ? "s" : ""} (pouco dado)</td>`;
+      const pct = Math.round((c.encontrados / c.total) * 100);
+      const destaque = melhorCelula && melhorCelula.dia === dia && melhorCelula.periodo === periodo;
+      const cor = pct >= 60 ? "var(--verde)" : pct >= 40 ? "var(--ambar)" : "var(--vermelho)";
+      return `<td style="font-weight:${destaque ? 700 : 500}; color:${cor}; ${destaque ? "background:var(--roxo-50);" : ""}">${pct}% <span style="color:var(--cinza-400); font-weight:400;">(${c.total})</span></td>`;
+    }).join("");
+    return `<tr><td style="font-weight:700;">${dia}</td>${celulas}</tr>`;
+  }).join("");
+
+  document.getElementById("tabelaHorarios").innerHTML = cabecalho + `<tbody>${linhas}</tbody>`;
+}
 
 carregarDados();
 </script>
