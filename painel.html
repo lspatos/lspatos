@@ -107,6 +107,19 @@
       <div class="tabela-scroll">
         <table class="tabela-dados" id="tabelaHorarios"></table>
       </div>
+
+      <p style="font-size:12px; color:var(--cinza-400); margin:18px 0 10px;">📊 Resumo geral ponderado por quantidade — já excluindo lançamentos em rajada (vários registros com poucos segundos de diferença, típico de alguém lançando visitas antigas de uma vez, não em tempo real).</p>
+      <div class="indicadores" style="margin:0;">
+        <div class="cartao" style="background:var(--roxo-50); box-shadow:none;">
+          <h3>Melhor dia (geral)</h3>
+          <p id="melhorDiaGeral">-</p>
+        </div>
+        <div class="cartao" style="background:var(--roxo-50); box-shadow:none;">
+          <h3>Melhor período (geral)</h3>
+          <p id="melhorPeriodoGeral">-</p>
+        </div>
+      </div>
+      <p id="avisoRajadas" style="font-size:12px; color:var(--cinza-400); margin-top:10px;"></p>
     </div>
 
     <div id="tabela" class="tabela-scroll"></div>
@@ -364,15 +377,55 @@ function periodoDoDia(hora) {
   return "Noite"; // 18h-23h59 e madrugada (0h-4h59) juntos, pouco uso no campo
 }
 
+// Detecta registros que fazem parte de um "lançamento em rajada": 3+ registros do
+// mesmo responsável com no máximo 60s de intervalo entre cliques consecutivos.
+// Isso normalmente indica alguém registrando visitas antigas de uma vez só (retroativo),
+// não visitas acontecendo em tempo real - e por isso distorce a estatística de horário.
+function detectarLinhasEmRajada(registros) {
+  const porResp = {};
+  registros.forEach((r, i) => {
+    const resp = (r.Responsável || r.Responsavel || r.responsavel || "").trim().toLowerCase();
+    const dt = parseDataBR(r["Data e Hora"] || r.dataHora);
+    if (isNaN(dt)) return;
+    if (!porResp[resp]) porResp[resp] = [];
+    porResp[resp].push({ i, dt });
+  });
+
+  const emRajada = new Set();
+  const GAP_MAX_MS = 60 * 1000;
+  Object.values(porResp).forEach(lista => {
+    lista.sort((a, b) => a.dt - b.dt);
+    let grupo = [lista[0]];
+    for (let k = 1; k < lista.length; k++) {
+      if (lista[k].dt - grupo[grupo.length - 1].dt <= GAP_MAX_MS) {
+        grupo.push(lista[k]);
+      } else {
+        if (grupo.length >= 3) grupo.forEach(g => emRajada.add(g.i));
+        grupo = [lista[k]];
+      }
+    }
+    if (grupo.length >= 3) grupo.forEach(g => emRajada.add(g.i));
+  });
+  return emRajada;
+}
+
 function calcularMelhorHorario() {
-  // Usa o histórico completo (ciclo atual + backups) pra ter uma amostra maior e mais confiável
+  const linhasEmRajada = detectarLinhasEmRajada(historicoCompleto);
+  const registrosConfiaveis = historicoCompleto.filter((r, i) => !linhasEmRajada.has(i));
+
+  document.getElementById("avisoRajadas").textContent =
+    linhasEmRajada.size > 0
+      ? `${linhasEmRajada.size} de ${historicoCompleto.length} registros do histórico foram identificados como lançamento em rajada e excluídos desta análise.`
+      : "";
+
+  // Usa o histórico completo (ciclo atual + backups), já sem as rajadas, pra ter uma amostra maior e mais confiável
   const matriz = {}; // matriz[dia][periodo] = { total, encontrados }
   DIAS_SEMANA.forEach(d => {
     matriz[d] = {};
     PERIODOS.forEach(p => { matriz[d][p] = { total: 0, encontrados: 0 }; });
   });
 
-  historicoCompleto.forEach(r => {
+  registrosConfiaveis.forEach(r => {
     const dataObj = parseDataBR(r["Data e Hora"] || r.dataHora);
     if (isNaN(dataObj)) return;
     const dia = DIAS_SEMANA[dataObj.getDay()];
@@ -403,6 +456,46 @@ function calcularMelhorHorario() {
   } else {
     resumo.textContent = "Ainda não há registros suficientes pra apontar uma melhor combinação.";
   }
+
+  // ===== Resumos gerais (marginais) - ponderados pela quantidade, não média simples de % =====
+  const totalPorDia = {}, totalPorPeriodo = {};
+  DIAS_SEMANA.forEach(d => { totalPorDia[d] = { total: 0, encontrados: 0 }; });
+  PERIODOS.forEach(p => { totalPorPeriodo[p] = { total: 0, encontrados: 0 }; });
+
+  DIAS_SEMANA.forEach(dia => {
+    PERIODOS.forEach(periodo => {
+      const c = matriz[dia][periodo];
+      totalPorDia[dia].total += c.total;
+      totalPorDia[dia].encontrados += c.encontrados;
+      totalPorPeriodo[periodo].total += c.total;
+      totalPorPeriodo[periodo].encontrados += c.encontrados;
+    });
+  });
+
+  let melhorDia = null;
+  DIAS_SEMANA.forEach(dia => {
+    const c = totalPorDia[dia];
+    if (c.total >= AMOSTRA_MINIMA) {
+      const pct = c.encontrados / c.total;
+      if (!melhorDia || pct > melhorDia.pct) melhorDia = { dia, pct, total: c.total };
+    }
+  });
+
+  let melhorPeriodo = null;
+  PERIODOS.forEach(periodo => {
+    const c = totalPorPeriodo[periodo];
+    if (c.total >= AMOSTRA_MINIMA) {
+      const pct = c.encontrados / c.total;
+      if (!melhorPeriodo || pct > melhorPeriodo.pct) melhorPeriodo = { periodo, pct, total: c.total };
+    }
+  });
+
+  document.getElementById("melhorDiaGeral").textContent = melhorDia
+    ? `${melhorDia.dia} — ${(melhorDia.pct * 100).toFixed(0)}% (${melhorDia.total})`
+    : "Dados insuficientes";
+  document.getElementById("melhorPeriodoGeral").textContent = melhorPeriodo
+    ? `${melhorPeriodo.periodo} — ${(melhorPeriodo.pct * 100).toFixed(0)}% (${melhorPeriodo.total})`
+    : "Dados insuficientes";
 
   // Monta a tabela dia × período
   const cabecalho = `<thead><tr><th>Dia</th>${PERIODOS.map(p => `<th>${p}</th>`).join("")}</tr></thead>`;
