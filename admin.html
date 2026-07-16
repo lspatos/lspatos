@@ -556,6 +556,33 @@
     if (!token) return alert("Sessão expirada.");
     if (!confirm("Isso vai arquivar todas as respostas atuais em uma nova aba \"VISITA FINALIZADA\" e zerar a aba de respostas para o próximo ciclo. Confirma?")) return;
 
+    // Ação delicada e irreversível pelo site: exige confirmar a senha de novo,
+    // mesmo já estando logado — protege contra o caso do painel ficar aberto
+    // num aparelho compartilhado/emprestado.
+    const usuarioAtual = sessionStorage.getItem("usuarioAdmin") || "";
+    const senhaConfirmacao = prompt(`Ação delicada. Digite novamente a senha de "${usuarioAtual || "administrador"}" para confirmar:`);
+    if (senhaConfirmacao === null) return; // cancelou o prompt
+    if (!senhaConfirmacao.trim()) {
+      alert("Senha não informada. Encerramento cancelado.");
+      return;
+    }
+
+    try {
+      const resConfirma = await fetch(workerURL + "login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario: usuarioAtual, senha: senhaConfirmacao })
+      });
+      const dadosConfirma = await resConfirma.json();
+      if (!dadosConfirma.token) {
+        alert("Senha incorreta. Encerramento de ciclo cancelado.");
+        return;
+      }
+    } catch {
+      alert("Não foi possível confirmar a senha agora (sem conexão?). Tente novamente.");
+      return;
+    }
+
     const btn = document.getElementById("finalizarVisitaBtn");
     btn.disabled = true;
     btn.textContent = "⏳ Encerrando...";
