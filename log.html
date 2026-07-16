@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#5c3d89" />
+  <link rel="icon" href="fav_icon.ico" type="image/x-icon">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Log de alterações — LS Mapas</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { padding-bottom: 40px; }
+    main { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+    h1.titulo-pagina { text-align: center; font-size: 22px; margin: 22px 0 4px; }
+    .nota { text-align: center; font-size: 12.5px; color: var(--cinza-400); margin-bottom: 22px; }
+    .filtro { display: flex; gap: 10px; margin: 0 0 16px; flex-wrap: wrap; }
+    .filtro input, .filtro select { width: auto; min-width: 180px; flex: 1 1 180px; }
+    #status { text-align: center; color: var(--roxo-600); font-weight: 600; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <header class="topo-app">
+    <h1 style="text-align:left;">📜 Log de alterações</h1>
+    <button class="btn btn-secundario" onclick="voltar()">⬅ Admin</button>
+  </header>
+
+  <main>
+    <p class="nota">Registra quem cadastrou, editou, excluiu ou encerrou ciclos — não inclui as respostas de campo (Encontrado/Não encontrado), só ações administrativas.</p>
+
+    <div class="filtro">
+      <input type="search" id="busca" placeholder="🔎 Buscar por usuário, ação ou detalhe...">
+      <select id="filtroAcao">
+        <option value="">Todas as ações</option>
+      </select>
+    </div>
+
+    <p id="status">⏳ Carregando log…</p>
+    <div class="tabela-scroll">
+      <table class="tabela-dados" id="tabelaLog" style="display:none;">
+        <thead>
+          <tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Detalhes</th></tr>
+        </thead>
+        <tbody id="corpoLog"></tbody>
+      </table>
+    </div>
+  </main>
+
+<script>
+  const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev";
+  const token = sessionStorage.getItem("authToken");
+
+  if (!token) {
+    document.body.innerHTML = "<h3 style='text-align:center;color:#5a2d82;'>Acesso negado. Faça login pelo admin.</h3>";
+    throw new Error("Token ausente");
+  }
+
+  function escapeHTML(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  let registrosLog = [];
+
+  async function carregarLog() {
+    try {
+      const res = await fetch(`${workerURL}?acao=read&aba=Log`, { headers: { "x-auth-token": token } });
+      const dados = await res.json();
+
+      if (dados.erro && dados.erro.includes("Sessão")) {
+        alert("Sessão expirada. Faça login novamente.");
+        window.location.href = "admin.html";
+        return;
+      }
+
+      if (dados.erro) {
+        // Aba "Log" ainda não existe (nenhuma ação administrativa foi feita ainda desde a atualização)
+        document.getElementById("status").textContent = "Nenhum registro de log ainda.";
+        return;
+      }
+
+      registrosLog = (dados.registros || []).slice().reverse(); // mais recentes primeiro
+      preencherFiltroAcao();
+      document.getElementById("status").style.display = "none";
+      document.getElementById("tabelaLog").style.display = "table";
+      renderizarTabela();
+    } catch (err) {
+      console.error(err);
+      document.getElementById("status").textContent = "❌ Erro ao carregar o log.";
+    }
+  }
+
+  function preencherFiltroAcao() {
+    const select = document.getElementById("filtroAcao");
+    const acoes = [...new Set(registrosLog.map(r => r.Acao || r["Ação"] || "").filter(Boolean))].sort();
+    select.innerHTML = `<option value="">Todas as ações</option>` +
+      acoes.map(a => `<option value="${escapeHTML(a)}">${escapeHTML(a)}</option>`).join("");
+  }
+
+  function renderizarTabela() {
+    const busca = (document.getElementById("busca").value || "").trim().toLowerCase();
+    const acaoFiltro = document.getElementById("filtroAcao").value;
+
+    const filtrados = registrosLog.filter(r => {
+      const acao = r.Acao || r["Ação"] || "";
+      if (acaoFiltro && acao !== acaoFiltro) return false;
+      if (busca) {
+        const alvo = `${r.Usuario || r["Usuário"] || ""} ${acao} ${r.Detalhes || ""}`.toLowerCase();
+        if (!alvo.includes(busca)) return false;
+      }
+      return true;
+    });
+
+    const corpo = document.getElementById("corpoLog");
+    if (filtrados.length === 0) {
+      corpo.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--cinza-400);">Nenhum registro encontrado.</td></tr>`;
+      return;
+    }
+
+    corpo.innerHTML = filtrados.map(r => {
+      const dataObj = new Date(r.Timestamp);
+      const dataFmt = isNaN(dataObj) ? String(r.Timestamp || "") : dataObj.toLocaleString("pt-BR");
+      return `<tr>
+        <td>${escapeHTML(dataFmt)}</td>
+        <td>${escapeHTML(r.Usuario || r["Usuário"] || "")}</td>
+        <td>${escapeHTML(r.Acao || r["Ação"] || "")}</td>
+        <td>${escapeHTML(r.Detalhes || "")}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  document.getElementById("busca").addEventListener("input", renderizarTabela);
+  document.getElementById("filtroAcao").addEventListener("change", renderizarTabela);
+
+  function voltar() { window.location.href = "admin.html"; }
+
+  carregarLog();
+</script>
+</body>
+</html>

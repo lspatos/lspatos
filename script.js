@@ -52,7 +52,10 @@ async function gerarEnderecos(nomeMapa) {
     // Alertas (avisos de mudança/falecimento) - se falhar, não impede o resto de carregar,
     // já que é só um complemento informativo (aba pode nem existir ainda).
     try {
-      const resAlertas = await fetch(`${proxyURL}?acao=read&aba=Alertas`);
+      // Usa a ação pública "alertas-publico" (sem o nome de quem reportou),
+      // em vez de ler a aba "Alertas" crua — que traria o campo Responsavel
+      // exposto para qualquer visitante, mesmo sem ser mostrado na tela.
+      const resAlertas = await fetch(`${proxyURL}?acao=alertas-publico`);
       dadosAlertas = resAlertas.ok ? await resAlertas.json() : { registros: [] };
     } catch {
       dadosAlertas = { registros: [] };

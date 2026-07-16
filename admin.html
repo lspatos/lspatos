@@ -109,13 +109,14 @@
   <!-- Painel Administrativo -->
   <div id="painel">
     <header class="topo-app" style="margin: 0 -16px;">
-      <h1>Administração</h1>
+      <h1>Administração <span id="usuarioLogado" style="font-size:12px; font-weight:400; opacity:.75;"></span></h1>
     </header>
 
     <div class="painel-acoes">
       <button class="btn btn-secundario" onclick="abrirPainel()">📊 Painel</button>
       <button class="btn btn-secundario" onclick="abrirRelatorio()">📂 Imprimir Mapas</button>
       <button class="btn btn-secundario" onclick="abrirS13()">📄 S-13</button>
+      <button class="btn btn-secundario" onclick="abrirLog()">📜 Log</button>
       <button class="btn btn-neutro" onclick="window.location.href='/'">⬅ Início</button>
       <button class="btn btn-neutro" onclick="logout()">🚪 Sair</button>
     </div>
@@ -374,6 +375,7 @@
 
       if (data.token) {
         sessionStorage.setItem("authToken", data.token);
+        sessionStorage.setItem("usuarioAdmin", data.usuario || "");
         token = data.token;
         iniciarPainel();
       } else {
@@ -387,11 +389,14 @@
   function iniciarPainel() {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("painel").style.display = "block";
+    const usuarioAtual = sessionStorage.getItem("usuarioAdmin");
+    document.getElementById("usuarioLogado").textContent = usuarioAtual ? `— ${usuarioAtual}` : "";
     carregarMapas().then(carregarAlertas);
   }
 
   function logout() {
     sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("usuarioAdmin");
     token = null;
     location.reload();
   }
@@ -573,6 +578,11 @@
   function abrirS13() {
     if (!token) return alert("Sessão expirada.");
     window.open("s13.html", "_blank");
+  }
+
+  function abrirLog() {
+    if (!token) return alert("Sessão expirada.");
+    window.open("log.html", "_blank");
   }
 
   // === Sessão Persistente ===
