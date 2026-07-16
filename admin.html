@@ -470,12 +470,27 @@
   document.getElementById("filtroMapaAdmin").addEventListener("change", renderizarTabelaMapas);
 
   async function salvar() {
-    const mapa = document.getElementById("mapa").value;
-    const endereco = document.getElementById("endereco").value;
+    const mapa = document.getElementById("mapa").value.trim();
+    const endereco = document.getElementById("endereco").value.trim();
     const restricao = document.getElementById("restricao").value;
     const id = document.getElementById("id").value || "";
 
     if (!mapa || !endereco) return alert("Preencha Mapa e Endereço.");
+
+    // Detecção de duplicata: só faz sentido ao CADASTRAR (sem id) - ao editar
+    // um registro existente é normal ele já ter esse mesmo mapa+endereço.
+    if (!id) {
+      const duplicado = registrosAtuais.find(r =>
+        (r.Mapa || "").trim().toLowerCase() === mapa.toLowerCase() &&
+        (r.Endereco || "").trim().toLowerCase() === endereco.toLowerCase()
+      );
+      if (duplicado) {
+        const continuar = confirm(
+          `Já existe um endereço igual cadastrado em "${mapa}":\n"${duplicado.Endereco}"\n\nDeseja cadastrar mesmo assim?`
+        );
+        if (!continuar) return;
+      }
+    }
 
     try {
       const res = await fetch(workerURL, {

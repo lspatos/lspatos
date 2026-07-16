@@ -21,6 +21,42 @@ function parseDataBR(str) {
 }
 
 // ==========================
+// CACHE OFFLINE DA LISTA DE ENDEREÇOS
+// Guarda a última cópia bem-sucedida (mapas + histórico + alertas) no
+// aparelho, pra continuar mostrando algo útil se o publicador perder sinal
+// antes mesmo de a página carregar pela primeira vez naquele momento.
+// ==========================
+const CHAVE_CACHE_ENDERECOS = "cacheEnderecosLS";
+
+function salvarCacheEnderecos(dadosMapas, dadosHistorico, dadosAlertas) {
+  try {
+    localStorage.setItem(CHAVE_CACHE_ENDERECOS, JSON.stringify({
+      dadosMapas, dadosHistorico, dadosAlertas, timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn("Não foi possível salvar o cache local de endereços:", e);
+  }
+}
+
+function lerCacheEnderecos() {
+  try {
+    const bruto = localStorage.getItem(CHAVE_CACHE_ENDERECOS);
+    return bruto ? JSON.parse(bruto) : null;
+  } catch {
+    return null;
+  }
+}
+
+function mostrarAvisoCacheOffline(timestamp) {
+  const container = document.getElementById("enderecos");
+  const aviso = document.createElement("div");
+  aviso.style.cssText = "background:var(--ambar-bg);color:#7A5417;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:12px;";
+  const dataFmt = new Date(timestamp).toLocaleString("pt-BR");
+  aviso.textContent = `📡 Sem conexão agora — mostrando a última cópia salva neste aparelho (${dataFmt}). As respostas continuam funcionando e serão enviadas quando a internet voltar.`;
+  container.prepend(aviso);
+}
+
+// ==========================
 // GERA OS ENDEREÇOS DINAMICAMENTE VIA PLANILHA + TEMPO DE VISITA
 // ==========================
 async function gerarEnderecos(nomeMapa) {
@@ -33,6 +69,7 @@ async function gerarEnderecos(nomeMapa) {
   `;
 
   let dadosMapas, dadosHistorico, dadosAlertas;
+  let timestampCache = null; // se preenchido, os dados acima vieram do cache, não da rede
 
   try {
     const [resMapas, resHistorico] = await Promise.all([
@@ -60,17 +97,32 @@ async function gerarEnderecos(nomeMapa) {
     } catch {
       dadosAlertas = { registros: [] };
     }
+
+    // Deu tudo certo: guarda essa cópia no aparelho pro caso de ficar offline depois
+    salvarCacheEnderecos(dadosMapas, dadosHistorico, dadosAlertas);
   } catch (err) {
     console.error("Erro ao buscar dados:", err);
-    let mensagem = "❌ Erro ao carregar endereços.";
+
+    // Sem conexão? Tenta usar a última cópia salva neste aparelho antes de desistir.
     if (err instanceof TypeError) {
-      // fetch lança TypeError quando não há conexão / servidor inacessível
-      mensagem = "📡 Sem conexão com o servidor. Verifique sua internet e tente novamente.";
-    } else if (String(err.message).startsWith("SERVIDOR:")) {
-      mensagem = "⚠ O servidor não respondeu corretamente. Tente novamente em instantes.";
+      const cache = lerCacheEnderecos();
+      if (cache) {
+        dadosMapas = cache.dadosMapas;
+        dadosHistorico = cache.dadosHistorico;
+        dadosAlertas = cache.dadosAlertas;
+        timestampCache = cache.timestamp;
+      } else {
+        container.innerHTML = "<p style='text-align:center;'>📡 Sem conexão com o servidor, e ainda não há nenhuma cópia salva neste aparelho. Abra esta página com internet pelo menos uma vez.</p>";
+        return;
+      }
+    } else {
+      let mensagem = "❌ Erro ao carregar endereços.";
+      if (String(err.message).startsWith("SERVIDOR:")) {
+        mensagem = "⚠ O servidor não respondeu corretamente. Tente novamente em instantes.";
+      }
+      container.innerHTML = `<p style='text-align:center;'>${mensagem}</p>`;
+      return;
     }
-    container.innerHTML = `<p style='text-align:center;'>${mensagem}</p>`;
-    return;
   }
 
   if (!dadosMapas?.registros) {
@@ -211,6 +263,8 @@ async function gerarEnderecos(nomeMapa) {
     div.append(entradas);
     container.appendChild(div);
   });
+
+  if (timestampCache) mostrarAvisoCacheOffline(timestampCache);
 }
 
 // ==========================

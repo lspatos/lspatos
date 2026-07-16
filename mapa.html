@@ -30,6 +30,12 @@
 
     #enderecos { max-width: 640px; margin: 0 auto; padding: 6px 16px 50px; }
 
+    .busca-endereco-mapa {
+      max-width: 640px;
+      margin: 14px auto 0;
+      padding: 0 16px;
+    }
+
     .container_end {
       background: #fff;
       border-radius: var(--raio-md);
@@ -270,6 +276,10 @@
     </div>
   </div>
 
+  <div class="busca-endereco-mapa">
+    <input type="search" id="buscaEndereco" placeholder="🔎 Buscar endereço neste mapa...">
+  </div>
+
   <section id="enderecos"></section>
 
   <script src="script.js"></script>
@@ -280,6 +290,17 @@
 
     document.getElementById("tituloMapa").innerText = nomeMapa;
     gerarEnderecos(nomeMapa);
+
+    // Busca simples: filtra os cartões já carregados pelo texto do endereço,
+    // ignorando acentuação (usa removerAcentos, já definida em script.js).
+    document.getElementById("buscaEndereco").addEventListener("input", (e) => {
+      const termo = removerAcentos(e.target.value.trim().toLowerCase());
+      document.querySelectorAll("#enderecos .container_end").forEach(card => {
+        const titulo = card.querySelector("h4");
+        const texto = titulo ? removerAcentos(titulo.textContent.toLowerCase()) : "";
+        card.style.display = texto.includes(termo) ? "" : "none";
+      });
+    });
   </script>
 </body>
 </html>
