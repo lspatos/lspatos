@@ -4,8 +4,8 @@
  * lidos do Worker, pra funcionar mesmo com sinal fraco ou instável.
  */
 
-const CACHE_ESTATICO = 'ls-mapas-estatico-v4';
-const CACHE_DADOS = 'ls-mapas-dados-v4';
+const CACHE_ESTATICO = 'ls-mapas-estatico-v5';
+const CACHE_DADOS = 'ls-mapas-dados-v5';
 
 const ARQUIVOS_ESTATICOS = [
   './',
