@@ -388,21 +388,29 @@ table.tabela-dados tr:hover td { background: var(--roxo-50); }
 
 /* =========================================================
    Selo "novo" — marca recursos recém-adicionados (ver novidades.js)
+   Fica sobreposto no canto do elemento (não empurra o conteúdo do botão) -
+   por isso o elemento marcado com data-novo precisa de position:relative.
    ========================================================= */
+[data-novo] { position: relative; }
+
 .selo-novo {
+  position: absolute;
+  top: -8px;
+  right: -8px;
   display: inline-flex;
   align-items: center;
-  margin-left: 6px;
   padding: 2px 7px;
   border-radius: 20px;
   background: var(--ambar);
   color: #fff;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
-  vertical-align: middle;
   white-space: nowrap;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, .3);
+  pointer-events: none;
+  z-index: 2;
   animation: pulso-selo-novo 1.8s ease-in-out infinite;
 }
 @keyframes pulso-selo-novo {
