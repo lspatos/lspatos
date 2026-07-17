@@ -75,6 +75,30 @@
     .form-botoes { display: flex; gap: 8px; grid-column: 1 / -1; }
     .form-botoes .btn { flex: 1; }
 
+    .lista-sugestoes-endereco {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 60;
+      background: #fff;
+      border: 1.5px solid var(--cinza-200);
+      border-radius: var(--raio-sm);
+      max-height: 240px;
+      overflow-y: auto;
+      box-shadow: var(--sombra-card);
+      margin-top: 2px;
+    }
+    .lista-sugestoes-endereco .item-sugestao-endereco {
+      padding: 10px 12px;
+      font-size: 13.5px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--cinza-200);
+    }
+    .lista-sugestoes-endereco .item-sugestao-endereco:last-child { border-bottom: none; }
+    .lista-sugestoes-endereco .item-sugestao-endereco:hover { background: var(--roxo-50); }
+
     .secao-titulo-tabela {
       display: flex; align-items: center; justify-content: space-between;
       margin: 26px 0 12px;
@@ -143,9 +167,10 @@
           <input type="text" id="mapa" list="listaMapasExistentes" placeholder="Ex: Mapa 01">
           <datalist id="listaMapasExistentes"></datalist>
         </div>
-        <div class="campo" style="grid-column: span 2;">
+        <div class="campo" style="grid-column: span 2; position:relative;">
           <label for="endereco">Endereço completo</label>
-          <input type="text" id="endereco" placeholder="Rua, número, bairro">
+          <input type="text" id="endereco" placeholder="Rua, número, bairro" autocomplete="off">
+          <div id="sugestoesEndereco" class="lista-sugestoes-endereco"></div>
         </div>
         <div class="campo">
           <label for="restricao">Restrição (opcional)</label>
@@ -1223,6 +1248,76 @@
       setTimeout(() => mapaCadastroLeaflet.invalidateSize(), 80);
     }
   }
+
+  // === Busca de endereço com sugestões (tipo app de corrida) ===
+  // Evita o problema de confiar num único resultado de geocodificação: o
+  // administrador vê os candidatos reais e escolhe o certo, em vez do
+  // sistema "adivinhar" (que pode casar com uma rua de nome igual em outra
+  // cidade quando o endereço exato não existe em Patos de Minas).
+  let debounceEnderecoCadastro = null;
+
+  document.getElementById("endereco").addEventListener("input", () => {
+    clearTimeout(debounceEnderecoCadastro);
+    const texto = document.getElementById("endereco").value.trim();
+    const lista = document.getElementById("sugestoesEndereco");
+    if (texto.length < 5) {
+      lista.style.display = "none";
+      lista.innerHTML = "";
+      return;
+    }
+    debounceEnderecoCadastro = setTimeout(() => buscarSugestoesEnderecoCadastro(texto), 450);
+  });
+
+  async function buscarSugestoesEnderecoCadastro(texto) {
+    const lista = document.getElementById("sugestoesEndereco");
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "buscar-enderecos", texto })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+
+      if (data.erro || !data.sugestoes || !data.sugestoes.length) {
+        lista.style.display = "none";
+        lista.innerHTML = "";
+        return;
+      }
+
+      lista.dataset.sugestoesJson = JSON.stringify(data.sugestoes);
+      lista.innerHTML = data.sugestoes.map((s, i) => `
+        <div class="item-sugestao-endereco" data-i="${i}">${escapeHTML(s.label)}</div>
+      `).join("");
+      lista.style.display = "block";
+    } catch {
+      lista.style.display = "none";
+    }
+  }
+
+  document.getElementById("sugestoesEndereco").addEventListener("click", (e) => {
+    const item = e.target.closest(".item-sugestao-endereco");
+    if (!item) return;
+    const lista = document.getElementById("sugestoesEndereco");
+    const sugestoes = JSON.parse(lista.dataset.sugestoesJson || "[]");
+    const escolhida = sugestoes[Number(item.dataset.i)];
+    if (!escolhida) return;
+
+    document.getElementById("endereco").value = escolhida.label;
+    document.getElementById("statusLocalizacaoCadastro").textContent =
+      "Endereço escolhido da lista - coordenada já confirmada.";
+    mostrarPinCadastro(escolhida.lat, escolhida.lng);
+    lista.style.display = "none";
+    lista.innerHTML = "";
+  });
+
+  // Esconde a lista de sugestões se clicar fora dela
+  document.addEventListener("click", (e) => {
+    const lista = document.getElementById("sugestoesEndereco");
+    if (e.target.id !== "endereco" && !lista.contains(e.target)) {
+      lista.style.display = "none";
+    }
+  });
 
   async function localizarEnderecoCadastro() {
     const endereco = document.getElementById("endereco").value.trim();
