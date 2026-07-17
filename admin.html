@@ -220,9 +220,32 @@
   }
   .filtros-tabela input[type="search"] { flex: 1 1 260px; }
   .filtros-tabela select { flex: 0 1 200px; }
+
+  /* Popover de sugestão de rota (mesmo padrão visual usado em index.html/mapa.html) */
+  .popover-alerta {
+    position: fixed; inset: 0;
+    background: rgba(33,27,43,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 998; padding: 16px;
+  }
+  .popover-alerta .conteudo {
+    background: #fff; width: 100%; max-width: 480px;
+    border-radius: var(--raio-lg); padding: 22px 20px 26px;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .popover-alerta h3 { font-size: 16px; margin-bottom: 4px; }
+  .popover-alerta p { font-size: 13px; color: var(--cinza-700); margin-bottom: 14px; }
+  .popover-alerta label { display: block; margin-bottom: 6px; }
+  .popover-alerta input { margin-bottom: 14px; }
+  .popover-alerta button.cancelar {
+    display: block; width: 100%; text-align: center;
+    background: none; border: none; color: var(--cinza-400);
+    padding: 10px; margin-top: 8px; font-size: 14px; cursor: pointer;
+  }
 </style>
 
 <script>
+
   let alertasAgrupados = [];
 
   async function carregarAlertas() {
@@ -591,6 +614,7 @@
             <span class="selo-territorio">${escapeHTML(numero)}</span>
             <span class="nome-grupo">${escapeHTML(mapa)}</span>
             <span class="contagem-grupo">${filtrados.length} endereço${filtrados.length !== 1 ? "s" : ""}</span>
+            <button class="btn btn-secundario btn-icone btn-sugerir-rota" title="Sugerir ordem por rota">🧭</button>
             <button class="btn btn-secundario btn-icone btn-add-neste-mapa" title="Adicionar endereço neste mapa">➕</button>
           </summary>
           <div class="tabela-scroll">
@@ -625,6 +649,9 @@
       moverEndereco(grupo.dataset.mapa, linha.dataset.id, Number(alvo.dataset.dir));
     } else if (alvo.classList.contains("btn-add-neste-mapa") && grupo) {
       prepararNovoNoMapa(grupo.dataset.mapa);
+    } else if (alvo.classList.contains("btn-sugerir-rota") && grupo) {
+      e.preventDefault(); // não deixa o clique também fechar/abrir o <details>
+      abrirSugestaoRota(grupo.dataset.mapa);
     }
   });
 
@@ -662,6 +689,118 @@
     document.getElementById("mapa").value = mapa === "(sem mapa)" ? "" : mapa;
     document.getElementById("formCadastro").scrollIntoView({ behavior: "smooth", block: "center" });
     document.getElementById("endereco").focus();
+  }
+
+  // === Sugestão de ordem por rota (OpenRouteService, com fallback local) ===
+  const ENDERECO_SALAO = "R. João da Rocha Filgueira, 7 - Centro, Patos de Minas - MG, 38700-074";
+
+  function abrirSugestaoRota(mapa) {
+    const itens = registrosAtuais
+      .filter(r => (r.Mapa || "").trim() === mapa)
+      .sort((a, b) => (Number(a.Ordem) || 0) - (Number(b.Ordem) || 0));
+
+    if (itens.length < 2) {
+      alert("Esse mapa precisa de pelo menos 2 endereços pra sugerir uma rota.");
+      return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "popover-alerta";
+    overlay.innerHTML = `
+      <div class="conteudo">
+        <h3>🧭 Sugerir ordem por rota</h3>
+        <p><strong>${escapeHTML(mapa)}</strong> — calcula a melhor sequência pra visitar os endereços a partir de um ponto de partida, usando rotas reais (não distância em linha reta).</p>
+        <label for="origemRota">Endereço de partida</label>
+        <input type="text" id="origemRota" value="${escapeAttr(ENDERECO_SALAO)}">
+        <button class="btn btn-primario btn-bloco" id="calcularRotaBtn">Calcular rota sugerida</button>
+        <div id="resultadoRota"></div>
+        <button class="cancelar" type="button">Fechar</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector(".cancelar").addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+    overlay.querySelector("#calcularRotaBtn").addEventListener("click", async () => {
+      const origem = overlay.querySelector("#origemRota").value.trim();
+      if (!origem) { alert("Informe o endereço de partida."); return; }
+
+      const btn = overlay.querySelector("#calcularRotaBtn");
+      const resultado = overlay.querySelector("#resultadoRota");
+      btn.disabled = true;
+      btn.textContent = "Calculando...";
+      resultado.innerHTML = "";
+
+      try {
+        const res = await fetch(workerURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({ acao: "sugerir-rota", mapa, origem })
+        });
+        const data = await res.json();
+        if (data.erro && data.erro.includes("Sessão")) return logout();
+
+        if (data.erro) {
+          resultado.innerHTML = `<p style="color:var(--vermelho); font-size:13.5px; margin-top:14px;">${escapeHTML(data.erro)}</p>`;
+          return;
+        }
+
+        const porId = {};
+        itens.forEach(it => { porId[String(it.ID)] = it; });
+
+        const listaAtual = itens.map((it, i) => `${i + 1}. ${escapeHTML(it.Endereco || "")}`).join("<br>");
+        const listaSugerida = data.ordemSugerida
+          .map((id, i) => `${i + 1}. ${escapeHTML(porId[String(id)]?.Endereco || "?")}`)
+          .join("<br>");
+
+        const avisoMetodo = data.metodo && data.metodo !== "openrouteservice"
+          ? `<p style="font-size:12px; color:var(--ambar); margin:14px 0 0;">⚠ O serviço de rota não respondeu agora — essa sugestão usou um cálculo aproximado por distância em linha reta, não a rota real das ruas.</p>`
+          : "";
+        const avisoSemCoord = (data.semCoordenadas || []).length
+          ? `<p style="font-size:12px; color:var(--cinza-400); margin:8px 0 0;">ℹ ${data.semCoordenadas.length} endereço(s) não puderam ser localizados e ficaram no fim, na ordem atual.</p>`
+          : "";
+
+        resultado.innerHTML = `
+          ${avisoMetodo}${avisoSemCoord}
+          <div style="display:flex; gap:14px; margin:14px 0;">
+            <div style="flex:1; font-size:12.5px; min-width:0;">
+              <strong style="display:block; margin-bottom:6px; color:var(--cinza-700);">Ordem atual</strong>
+              <div style="color:var(--cinza-400); line-height:1.6;">${listaAtual}</div>
+            </div>
+            <div style="flex:1; font-size:12.5px; min-width:0;">
+              <strong style="display:block; margin-bottom:6px; color:var(--roxo-600);">Ordem sugerida</strong>
+              <div style="line-height:1.6;">${listaSugerida}</div>
+            </div>
+          </div>
+          <button class="btn btn-sucesso btn-bloco" id="aplicarRotaBtn">✔ Aplicar essa ordem</button>`;
+
+        overlay.querySelector("#aplicarRotaBtn").addEventListener("click", async () => {
+          const btnAplicar = overlay.querySelector("#aplicarRotaBtn");
+          btnAplicar.disabled = true;
+          btnAplicar.textContent = "Aplicando...";
+          try {
+            const resReordenar = await fetch(workerURL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "x-auth-token": token },
+              body: JSON.stringify({ acao: "reordenar", mapa, ids: data.ordemSugerida })
+            });
+            const dataReordenar = await resReordenar.json();
+            if (dataReordenar.erro && dataReordenar.erro.includes("Sessão")) return logout();
+            overlay.remove();
+            await carregarMapas();
+          } catch {
+            alert("Erro ao aplicar a nova ordem. Tente novamente.");
+            btnAplicar.disabled = false;
+            btnAplicar.textContent = "✔ Aplicar essa ordem";
+          }
+        });
+      } catch {
+        resultado.innerHTML = `<p style="color:var(--vermelho); font-size:13.5px; margin-top:14px;">Erro de conexão. Tente novamente.</p>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Calcular rota sugerida";
+      }
+    });
   }
 
   document.getElementById("buscaEndereco").addEventListener("input", renderizarGrupos);
