@@ -15,6 +15,13 @@
   --roxo-100: #EDE7F6;
   --roxo-50:  #F6F3FB;
 
+  /* Cores de TEXTO derivadas do roxo de marca - variáveis próprias (em vez
+     de usar --roxo-900/--roxo-700 direto) porque essas duas também servem
+     de FUNDO em vários lugares (hero, botão primário etc.). Assim dá pra
+     clarear só o texto no modo escuro, sem clarear os fundos junto. */
+  --heading: var(--roxo-900);
+  --acento-texto: var(--roxo-700);
+
   --tinta:    #211B2B;
   --cinza-700:#544C64;
   --cinza-400:#8B8496;
@@ -58,7 +65,7 @@ html, body {
 h1, h2, h3, h4 {
   font-family: var(--fonte-display);
   font-weight: 600;
-  color: var(--roxo-900);
+  color: var(--heading);
   line-height: 1.25;
 }
 
@@ -130,13 +137,13 @@ a {
 
 .btn-primario   { background: var(--roxo-600); color: #fff; }
 .btn-primario:hover { filter: brightness(1.08); }
-.btn-secundario { background: var(--roxo-100); color: var(--roxo-700); }
+.btn-secundario { background: var(--roxo-100); color: var(--acento-texto); }
 .btn-secundario:hover { filter: brightness(0.97); }
 .btn-sucesso    { background: var(--verde); color: #fff; }
 .btn-sucesso:hover { filter: brightness(1.06); }
 .btn-perigo     { background: var(--vermelho); color: #fff; }
 .btn-perigo:hover { filter: brightness(1.06); }
-.btn-neutro     { background: #fff; color: var(--roxo-700); border: 1.5px solid var(--cinza-200); }
+.btn-neutro     { background: #fff; color: var(--acento-texto); border: 1.5px solid var(--cinza-200); }
 .btn-bloco      { width: 100%; }
 
 /* =========================================================
@@ -287,6 +294,8 @@ table.tabela-dados tr:hover td { background: var(--roxo-50); }
   --cinza-200:#392E48;
   --papel:    #17131F;
   --branco:   #241D30;
+  --heading:      #E7DEF9;
+  --acento-texto: #C9B3EC;
   --sombra-card: 0 2px 14px rgba(0, 0, 0, 0.45);
   --sombra-flutuante: 0 6px 24px rgba(0, 0, 0, 0.6);
 }
