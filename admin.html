@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="style.css">
   <script src="theme.js"></script>
   <script src="novidades.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     /* --- Login --- */
     #loginScreen {
@@ -614,6 +616,7 @@
             <span class="selo-territorio">${escapeHTML(numero)}</span>
             <span class="nome-grupo">${escapeHTML(mapa)}</span>
             <span class="contagem-grupo">${filtrados.length} endereço${filtrados.length !== 1 ? "s" : ""}</span>
+            <button class="btn btn-secundario btn-icone btn-ver-mapa" title="Ver ordem atual no mapa">🗺️</button>
             <button class="btn btn-secundario btn-icone btn-sugerir-rota" title="Sugerir ordem por rota">🧭</button>
             <button class="btn btn-secundario btn-icone btn-add-neste-mapa" title="Adicionar endereço neste mapa">➕</button>
           </summary>
@@ -652,6 +655,9 @@
     } else if (alvo.classList.contains("btn-sugerir-rota") && grupo) {
       e.preventDefault(); // não deixa o clique também fechar/abrir o <details>
       abrirSugestaoRota(grupo.dataset.mapa);
+    } else if (alvo.classList.contains("btn-ver-mapa") && grupo) {
+      e.preventDefault();
+      abrirVisualizacaoMapa(grupo.dataset.mapa);
     }
   });
 
@@ -772,7 +778,13 @@
               <div style="line-height:1.6;">${listaSugerida}</div>
             </div>
           </div>
+          <div id="mapaSugestaoContainer" style="height:260px; border-radius:var(--raio-md); overflow:hidden; margin-bottom:14px;"></div>
           <button class="btn btn-sucesso btn-bloco" id="aplicarRotaBtn">✔ Aplicar essa ordem</button>`;
+
+        const pontosPorId = {};
+        (data.pontos || []).forEach(p => { pontosPorId[String(p.id)] = p; });
+        const pontosOrdenados = data.ordemSugerida.map(id => pontosPorId[String(id)]).filter(Boolean);
+        desenharMapaRota(overlay.querySelector("#mapaSugestaoContainer"), pontosOrdenados, data.geometria, data.origem);
 
         overlay.querySelector("#aplicarRotaBtn").addEventListener("click", async () => {
           const btnAplicar = overlay.querySelector("#aplicarRotaBtn");
@@ -801,6 +813,128 @@
         btn.textContent = "Calcular rota sugerida";
       }
     });
+  }
+
+  // === Ver no mapa a ordem ATUAL do mapa (sem sugerir nada novo) ===
+  async function abrirVisualizacaoMapa(mapa) {
+    const itens = registrosAtuais
+      .filter(r => (r.Mapa || "").trim() === mapa)
+      .sort((a, b) => (Number(a.Ordem) || 0) - (Number(b.Ordem) || 0));
+
+    if (itens.length < 2) {
+      alert("Esse mapa precisa de pelo menos 2 endereços pra mostrar no mapa.");
+      return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "popover-alerta";
+    overlay.innerHTML = `
+      <div class="conteudo">
+        <h3>🗺️ ${escapeHTML(mapa)} — ordem atual</h3>
+        <p>Sequência salva hoje pra este mapa (a mesma que aparece pros publicadores em campo).</p>
+        <p id="statusMapaAtual" style="font-size:12.5px; color:var(--cinza-400); text-align:center; padding:10px 0;">Carregando mapa...</p>
+        <div id="mapaAtualContainer" style="height:300px; border-radius:var(--raio-md); overflow:hidden; display:none;"></div>
+        <button class="cancelar" type="button" style="margin-top:14px;">Fechar</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector(".cancelar").addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "ver-rota-atual", mapa })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+
+      const status = overlay.querySelector("#statusMapaAtual");
+
+      if (data.erro) {
+        status.textContent = data.erro;
+        return;
+      }
+
+      const mensagens = [];
+      if (data.metodo !== "openrouteservice") {
+        mensagens.push("⚠ Sem o desenho da rota real agora (serviço indisponível) — mostrando linha reta entre os pontos.");
+      }
+      if ((data.semCoordenadas || []).length) {
+        mensagens.push(`ℹ ${data.semCoordenadas.length} endereço(s) não localizados, fora do mapa.`);
+      }
+
+      if (mensagens.length) {
+        status.textContent = mensagens.join(" ");
+      } else {
+        status.remove();
+      }
+
+      const containerMapa = overlay.querySelector("#mapaAtualContainer");
+      containerMapa.style.display = "block";
+      desenharMapaRota(containerMapa, data.pontos || [], data.geometria, null);
+    } catch {
+      overlay.querySelector("#statusMapaAtual").textContent = "Erro de conexão. Tente novamente.";
+    }
+  }
+
+  // === Helper compartilhado: desenha os pinos numerados + a rota num mapa Leaflet ===
+  // pontos: [{endereco, lat, lng}] JÁ na ordem que deve aparecer numerada.
+  // geometria: [[lat,lng], ...] (rota real) ou null (nesse caso usa linha reta).
+  // origem: {lat, lng} do ponto de partida, ou null se não houver um separado.
+  function desenharMapaRota(container, pontos, geometria, origem) {
+    if (!container || !pontos.length) {
+      if (container) container.innerHTML = `<p style="text-align:center; color:var(--cinza-400); font-size:13px; padding:20px;">Sem coordenadas suficientes pra desenhar o mapa.</p>`;
+      return;
+    }
+    container.innerHTML = "";
+
+    const mapaLeaflet = L.map(container, { scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(mapaLeaflet);
+
+    const limites = [];
+
+    if (origem && origem.lat && origem.lng) {
+      L.marker([origem.lat, origem.lng], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div style="background:var(--verde); color:#fff; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; box-shadow:0 2px 6px rgba(0,0,0,.35);">🏠</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        })
+      }).addTo(mapaLeaflet).bindTooltip("Ponto de partida");
+      limites.push([origem.lat, origem.lng]);
+    }
+
+    pontos.forEach((p, i) => {
+      L.marker([p.lat, p.lng], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div style="background:var(--roxo-600); color:#fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:700; box-shadow:0 2px 6px rgba(0,0,0,.35);">${i + 1}</div>`,
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        })
+      }).addTo(mapaLeaflet).bindTooltip(`${i + 1}. ${p.endereco || ""}`);
+      limites.push([p.lat, p.lng]);
+    });
+
+    const linha = (geometria && geometria.length)
+      ? geometria
+      : (origem && origem.lat
+          ? [[origem.lat, origem.lng], ...pontos.map(p => [p.lat, p.lng])]
+          : pontos.map(p => [p.lat, p.lng]));
+
+    L.polyline(linha, { color: "#5C3D89", weight: 4, opacity: 0.75 }).addTo(mapaLeaflet);
+    mapaLeaflet.fitBounds(limites, { padding: [24, 24] });
+
+    // O Leaflet às vezes calcula o tamanho errado se o container ainda não
+    // tinha as dimensões finais no momento da criação (comum dentro de
+    // popovers) - corrige logo depois do popover terminar de renderizar.
+    setTimeout(() => mapaLeaflet.invalidateSize(), 80);
   }
 
   document.getElementById("buscaEndereco").addEventListener("input", renderizarGrupos);
