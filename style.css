@@ -353,6 +353,11 @@ table.tabela-dados tr:hover td { background: var(--roxo-50); }
 #botaoTema:hover { filter: brightness(1.08); }
 #botaoTema:active { transform: scale(0.92); }
 
+/* Nunca deve aparecer numa impressão/PDF - é só um controle de tela */
+@media print {
+  #botaoTema, .selo-novo { display: none !important; }
+}
+
 /* =========================================================
    Acordeão de mapas (painel admin) — agrupa endereços por
    território, com contagem e atalho de "adicionar aqui"
