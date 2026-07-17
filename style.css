@@ -385,3 +385,30 @@ table.tabela-dados tr:hover td { background: var(--roxo-50); }
 .grupo-mapa .contagem-grupo { font-size: 12.5px; color: var(--cinza-400); font-family: var(--fonte-dado); white-space: nowrap; }
 .grupo-mapa table.tabela-dados { box-shadow: none; border-radius: 0; }
 .grupo-mapa .btn-add-neste-mapa { flex: 0 0 auto; }
+
+/* =========================================================
+   Selo "novo" — marca recursos recém-adicionados (ver novidades.js)
+   ========================================================= */
+.selo-novo {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--ambar);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  vertical-align: middle;
+  white-space: nowrap;
+  animation: pulso-selo-novo 1.8s ease-in-out infinite;
+}
+@keyframes pulso-selo-novo {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .selo-novo { animation: none; }
+}
