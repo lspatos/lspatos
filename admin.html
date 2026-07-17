@@ -1256,7 +1256,7 @@
   // cidade quando o endereço exato não existe em Patos de Minas).
   let debounceEnderecoCadastro = null;
 
-  document.getElementById("endereco").addEventListener("input", () => {
+  function agendarBuscaSugestoesCadastro() {
     clearTimeout(debounceEnderecoCadastro);
     const texto = document.getElementById("endereco").value.trim();
     const lista = document.getElementById("sugestoesEndereco");
@@ -1266,7 +1266,15 @@
       return;
     }
     debounceEnderecoCadastro = setTimeout(() => buscarSugestoesEnderecoCadastro(texto), 450);
-  });
+  }
+
+  const campoEnderecoCadastro = document.getElementById("endereco");
+  campoEnderecoCadastro.addEventListener("input", agendarBuscaSugestoesCadastro);
+  // Em alguns navegadores (principalmente no celular), colar texto não
+  // dispara o evento "input" do mesmo jeito que digitar. O evento "paste"
+  // também dispara ANTES do texto colado realmente entrar no campo - por
+  // isso o pequeno atraso (setTimeout 0), só pra ler o valor já atualizado.
+  campoEnderecoCadastro.addEventListener("paste", () => setTimeout(agendarBuscaSugestoesCadastro, 0));
 
   async function buscarSugestoesEnderecoCadastro(texto) {
     const lista = document.getElementById("sugestoesEndereco");
