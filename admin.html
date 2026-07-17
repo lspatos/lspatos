@@ -9,6 +9,7 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <title>Administração — LS Mapas</title>
   <link rel="stylesheet" href="style.css">
+  <script src="theme.js"></script>
   <style>
     /* --- Login --- */
     #loginScreen {
@@ -131,12 +132,13 @@
       <button id="finalizarVisitaBtn" class="btn btn-perigo" onclick="finalizarVisita()">📦 Encerrar ciclo agora</button>
     </div>
 
-    <div class="cartao form-cartao">
+    <div class="cartao form-cartao" id="formCadastro">
       <h3>Cadastrar / editar território</h3>
       <div class="grade-form">
         <div class="campo">
           <label for="mapa">Mapa</label>
-          <input type="text" id="mapa" placeholder="Ex: Mapa 01">
+          <input type="text" id="mapa" list="listaMapasExistentes" placeholder="Ex: Mapa 01">
+          <datalist id="listaMapasExistentes"></datalist>
         </div>
         <div class="campo" style="grid-column: span 2;">
           <label for="endereco">Endereço completo</label>
@@ -155,6 +157,12 @@
     </div>
 
     <div class="secao-titulo-tabela">
+      <h2>📍 Sugestões de endereço novo</h2>
+      <span id="contagemSugestoes" style="font-size:13px; color:var(--cinza-400); font-family:var(--fonte-dado);"></span>
+    </div>
+    <div id="listaSugestoes" style="margin-bottom:10px;"></div>
+
+    <div class="secao-titulo-tabela">
       <h2>⚠ Endereços reportados</h2>
       <span id="contagemAlertas" style="font-size:13px; color:var(--cinza-400); font-family:var(--fonte-dado);"></span>
     </div>
@@ -167,25 +175,9 @@
 
     <div class="filtros-tabela">
       <input type="search" id="buscaEndereco" placeholder="🔎 Buscar por endereço, mapa ou restrição...">
-      <select id="filtroMapaAdmin">
-        <option value="">Todos os mapas</option>
-      </select>
     </div>
 
-    <div class="tabela-scroll">
-      <table class="tabela-dados">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Mapa</th>
-            <th>Endereço</th>
-            <th>Restrição</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaMapas"></tbody>
-      </table>
-    </div>
+    <div id="gruposMapas"></div>
   </div>
 
 <style>
@@ -347,6 +339,102 @@
 </script>
 
 <script>
+  // ==========================
+  // SUGESTÕES DE ENDEREÇO NOVO
+  // Reportadas pelo publicador na tela inicial - o publicador só informa o
+  // endereço; quem escolhe o mapa de destino é o administrador, aqui.
+  // ==========================
+  let sugestoesAtuais = [];
+
+  async function carregarSugestoes() {
+    const container = document.getElementById("listaSugestoes");
+    try {
+      const res = await fetch(`${workerURL}?acao=read&aba=Sugestoes`, { headers: { "x-auth-token": token } });
+      const dados = await res.json();
+
+      if (dados.erro) {
+        container.innerHTML = "<p class='sem-alertas'>Nenhuma sugestão de endereço novo no momento.</p>";
+        document.getElementById("contagemSugestoes").textContent = "";
+        return;
+      }
+
+      sugestoesAtuais = dados.registros || [];
+      document.getElementById("contagemSugestoes").textContent =
+        sugestoesAtuais.length ? `${sugestoesAtuais.length} pendente(s)` : "";
+
+      if (sugestoesAtuais.length === 0) {
+        container.innerHTML = "<p class='sem-alertas'>Nenhuma sugestão de endereço novo no momento.</p>";
+        return;
+      }
+
+      const opcoesMapas = [...new Set(registrosAtuais.map(r => (r.Mapa || "").trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+
+      container.innerHTML = sugestoesAtuais.map((s, i) => `
+        <div class="cartao-alerta">
+          <div class="topo-alerta">
+            <div>
+              <h4>${escapeHTML(s.Endereco || "")}</h4>
+              <span class="tag-mapa">Reportado por ${escapeHTML(s.Responsavel || "Não identificado")}</span>
+            </div>
+          </div>
+          <div class="acoes-alerta" style="align-items:center;">
+            <select class="select-mapa-sugestao" data-i="${i}" style="flex:1 1 160px;">
+              <option value="">Escolha o mapa de destino…</option>
+              ${opcoesMapas.map(m => `<option value="${escapeAttr(m)}">${escapeHTML(m)}</option>`).join("")}
+            </select>
+            <button class="btn btn-sucesso btn-aprovar-sugestao" data-i="${i}">✔ Aprovar</button>
+            <button class="btn btn-perigo btn-rejeitar-sugestao" data-i="${i}">🗑 Rejeitar</button>
+          </div>
+        </div>`).join("");
+    } catch (err) {
+      console.error(err);
+      container.innerHTML = "<p class='sem-alertas'>❌ Erro ao carregar sugestões.</p>";
+    }
+  }
+
+  document.getElementById("listaSugestoes").addEventListener("click", async (e) => {
+    const i = e.target.dataset.i;
+    if (i === undefined) return;
+    const s = sugestoesAtuais[i];
+    if (!s) return;
+
+    if (e.target.classList.contains("btn-aprovar-sugestao")) {
+      const select = document.querySelector(`.select-mapa-sugestao[data-i="${i}"]`);
+      const mapa = select ? select.value.trim() : "";
+      if (!mapa) { alert("Escolha o mapa de destino antes de aprovar."); return; }
+      try {
+        const res = await fetch(workerURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({ acao: "aprovar-sugestao", id: s.ID, mapa })
+        });
+        const data = await res.json();
+        if (data.erro && data.erro.includes("Sessão")) return logout();
+        await carregarMapas();
+        await carregarSugestoes();
+      } catch {
+        alert("Erro ao aprovar sugestão.");
+      }
+    } else if (e.target.classList.contains("btn-rejeitar-sugestao")) {
+      if (!confirm(`Rejeitar o endereço "${s.Endereco}"? Ele não vira território.`)) return;
+      try {
+        const res = await fetch(workerURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({ acao: "rejeitar-sugestao", id: s.ID })
+        });
+        const data = await res.json();
+        if (data.erro && data.erro.includes("Sessão")) return logout();
+        await carregarSugestoes();
+      } catch {
+        alert("Erro ao rejeitar sugestão.");
+      }
+    }
+  });
+</script>
+
+<script>
   const workerURL = "https://ls-mapas-proxy.lspatosdeminas.workers.dev/";
   let token = sessionStorage.getItem("authToken");
   let registrosAtuais = [];
@@ -356,6 +444,21 @@
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;");
+  }
+
+  // Igual a escapeHTML, mas também escapa aspas - necessário para textos
+  // interpolados dentro de atributos HTML (ex: value="...", data-mapa="...")
+  function escapeAttr(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function removerAcentosAdmin(str) {
+    return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
   // === Login ===
@@ -391,7 +494,7 @@
     document.getElementById("painel").style.display = "block";
     const usuarioAtual = sessionStorage.getItem("usuarioAdmin");
     document.getElementById("usuarioLogado").textContent = usuarioAtual ? `— ${usuarioAtual}` : "";
-    carregarMapas().then(carregarAlertas);
+    carregarMapas().then(() => Promise.all([carregarAlertas(), carregarSugestoes()]));
   }
 
   function logout() {
@@ -411,63 +514,156 @@
 
       if (dados.erro && dados.erro.includes("Sessão")) return logout();
 
+      // O backend já devolve agrupado por Mapa e ordenado pela coluna Ordem
       registrosAtuais = dados.registros || [];
-      preencherFiltroMapaAdmin();
-      renderizarTabelaMapas();
+      preencherListaMapas();
+      renderizarGrupos();
     } catch (err) {
       console.error(err);
       alert("Erro ao carregar dados.");
     }
   }
 
-  function preencherFiltroMapaAdmin() {
-    const select = document.getElementById("filtroMapaAdmin");
-    const valorAtual = select.value;
+  // Preenche o <datalist> do campo "Mapa" no formulário de cadastro, pra
+  // sugerir os mapas já existentes sem impedir digitar um nome novo.
+  function preencherListaMapas() {
     const nomes = [...new Set(registrosAtuais.map(r => (r.Mapa || "").trim()).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
-    select.innerHTML = `<option value="">Todos os mapas</option>` +
-      nomes.map(n => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`).join("");
-    select.value = valorAtual; // mantém a seleção ao recarregar
+    document.getElementById("listaMapasExistentes").innerHTML =
+      nomes.map(n => `<option value="${escapeAttr(n)}">`).join("");
   }
 
-  function renderizarTabelaMapas() {
-    const busca = (document.getElementById("buscaEndereco").value || "").trim().toLowerCase();
-    const mapaFiltro = document.getElementById("filtroMapaAdmin").value;
+  // === Acordeão de endereços agrupados por mapa ===
+  function renderizarGrupos() {
+    const busca = removerAcentosAdmin((document.getElementById("buscaEndereco").value || "").trim().toLowerCase());
+    const container = document.getElementById("gruposMapas");
 
-    const filtrados = registrosAtuais.filter(item => {
-      if (mapaFiltro && (item.Mapa || "").trim() !== mapaFiltro) return false;
-      if (busca) {
-        const alvo = `${item.Mapa || ""} ${item.Endereco || ""} ${item.Restricao || ""}`.toLowerCase();
-        if (!alvo.includes(busca)) return false;
-      }
-      return true;
+    const porMapa = {};
+    registrosAtuais.forEach(r => {
+      const mapa = (r.Mapa || "").trim() || "(sem mapa)";
+      if (!porMapa[mapa]) porMapa[mapa] = [];
+      porMapa[mapa].push(r);
     });
 
-    document.getElementById("contagemRegistros").textContent =
-      busca || mapaFiltro ? `${filtrados.length} de ${registrosAtuais.length} endereços` : `${registrosAtuais.length} endereços`;
+    const nomesMapas = Object.keys(porMapa).sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
 
-    const tbody = document.getElementById("tabelaMapas");
-
-    if (filtrados.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--cinza-400);">Nenhum endereço encontrado.</td></tr>`;
+    if (nomesMapas.length === 0) {
+      container.innerHTML = `<p style="text-align:center;color:var(--cinza-400);padding:24px 0;">Nenhum endereço cadastrado ainda.</p>`;
+      document.getElementById("contagemRegistros").textContent = "";
       return;
     }
 
-    tbody.innerHTML = filtrados.map(item => `
-      <tr>
-        <td>${escapeHTML(item.ID || "")}</td>
-        <td>${escapeHTML(item.Mapa || "")}</td>
-        <td>${escapeHTML(item.Endereco || "")}</td>
-        <td>${escapeHTML(item.Restricao || "")}</td>
-        <td class="col-acoes">
-          <button class="btn btn-secundario btn-icone" onclick="editarPorId('${item.ID}')" title="Editar">✏️</button>
-          <button class="btn btn-perigo btn-icone" onclick="excluir('${item.ID}')" title="Excluir">🗑️</button>
-        </td>
-      </tr>`).join("");
+    let totalVisiveis = 0;
+    let algumGrupoVisivel = false;
+
+    const blocos = nomesMapas.map(mapa => {
+      // Já vem ordenado do backend, mas reordena localmente também (defensivo,
+      // caso registrosAtuais seja tocado por alguma outra rotina no futuro)
+      const itens = porMapa[mapa].slice().sort((a, b) => (Number(a.Ordem) || 0) - (Number(b.Ordem) || 0));
+      const filtrados = busca
+        ? itens.filter(it => removerAcentosAdmin(`${it.Mapa || ""} ${it.Endereco || ""} ${it.Restricao || ""}`.toLowerCase()).includes(busca))
+        : itens;
+
+      if (busca && filtrados.length === 0) return "";
+      algumGrupoVisivel = true;
+      totalVisiveis += filtrados.length;
+
+      const linhas = filtrados.map((item, idx) => `
+        <tr data-id="${escapeAttr(item.ID)}">
+          <td style="white-space:nowrap; width:70px;">
+            <button class="btn btn-neutro btn-icone btn-mover" data-dir="-1" title="Mover para cima" ${idx === 0 ? "disabled" : ""}>▲</button>
+            <button class="btn btn-neutro btn-icone btn-mover" data-dir="1" title="Mover para baixo" ${idx === filtrados.length - 1 ? "disabled" : ""}>▼</button>
+          </td>
+          <td>${escapeHTML(item.Endereco || "")}</td>
+          <td>${escapeHTML(item.Restricao || "")}</td>
+          <td class="col-acoes">
+            <button class="btn btn-secundario btn-icone btn-editar" title="Editar">✏️</button>
+            <button class="btn btn-perigo btn-icone btn-excluir" title="Excluir">🗑️</button>
+          </td>
+        </tr>`).join("");
+
+      const numero = mapa.replace(/\D/g, "") || "—";
+
+      return `
+        <details class="grupo-mapa" open data-mapa="${escapeAttr(mapa)}">
+          <summary>
+            <span class="selo-territorio">${escapeHTML(numero)}</span>
+            <span class="nome-grupo">${escapeHTML(mapa)}</span>
+            <span class="contagem-grupo">${filtrados.length} endereço${filtrados.length !== 1 ? "s" : ""}</span>
+            <button class="btn btn-secundario btn-icone btn-add-neste-mapa" title="Adicionar endereço neste mapa">➕</button>
+          </summary>
+          <div class="tabela-scroll">
+            <table class="tabela-dados">
+              <thead><tr><th></th><th>Endereço</th><th>Restrição</th><th>Ações</th></tr></thead>
+              <tbody>${linhas}</tbody>
+            </table>
+          </div>
+        </details>`;
+    }).join("");
+
+    container.innerHTML = algumGrupoVisivel
+      ? blocos
+      : `<p style="text-align:center;color:var(--cinza-400);padding:24px 0;">Nenhum endereço encontrado para essa busca.</p>`;
+
+    document.getElementById("contagemRegistros").textContent =
+      busca ? `${totalVisiveis} de ${registrosAtuais.length} endereços` : `${registrosAtuais.length} endereços`;
   }
 
-  document.getElementById("buscaEndereco").addEventListener("input", renderizarTabelaMapas);
-  document.getElementById("filtroMapaAdmin").addEventListener("change", renderizarTabelaMapas);
+  // Um único listener no container cobre todos os grupos (evita reatribuir
+  // dezenas de listeners a cada re-render do acordeão)
+  document.getElementById("gruposMapas").addEventListener("click", (e) => {
+    const alvo = e.target;
+    const linha = alvo.closest("tr[data-id]");
+    const grupo = alvo.closest("details.grupo-mapa");
+
+    if (alvo.classList.contains("btn-editar") && linha) {
+      editarPorId(linha.dataset.id);
+    } else if (alvo.classList.contains("btn-excluir") && linha) {
+      excluir(linha.dataset.id);
+    } else if (alvo.classList.contains("btn-mover") && linha && grupo) {
+      moverEndereco(grupo.dataset.mapa, linha.dataset.id, Number(alvo.dataset.dir));
+    } else if (alvo.classList.contains("btn-add-neste-mapa") && grupo) {
+      prepararNovoNoMapa(grupo.dataset.mapa);
+    }
+  });
+
+  // Move um endereço uma posição pra cima/baixo dentro do mesmo mapa e
+  // grava a nova ordem no backend (setas ▲▼)
+  async function moverEndereco(mapa, id, direcao) {
+    const itens = registrosAtuais
+      .filter(r => (r.Mapa || "").trim() === mapa)
+      .sort((a, b) => (Number(a.Ordem) || 0) - (Number(b.Ordem) || 0));
+
+    const posAtual = itens.findIndex(it => String(it.ID) === String(id));
+    const posNova = posAtual + direcao;
+    if (posAtual === -1 || posNova < 0 || posNova >= itens.length) return;
+
+    const ids = itens.map(it => it.ID);
+    [ids[posAtual], ids[posNova]] = [ids[posNova], ids[posAtual]];
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "reordenar", mapa, ids })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      await carregarMapas();
+    } catch {
+      alert("Erro ao reordenar. Tente novamente.");
+    }
+  }
+
+  // Abre o formulário de cadastro já com o mapa preenchido (atalho "➕" do grupo)
+  function prepararNovoNoMapa(mapa) {
+    limpar();
+    document.getElementById("mapa").value = mapa === "(sem mapa)" ? "" : mapa;
+    document.getElementById("formCadastro").scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById("endereco").focus();
+  }
+
+  document.getElementById("buscaEndereco").addEventListener("input", renderizarGrupos);
 
   async function salvar() {
     const mapa = document.getElementById("mapa").value.trim();
