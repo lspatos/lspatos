@@ -311,8 +311,13 @@ table.tabela-dados tr:hover td { background: var(--roxo-50); }
 :root[data-tema="escuro"] .popover-alerta .conteudo,
 :root[data-tema="escuro"] .popover-mapa .conteudo-mapa,
 :root[data-tema="escuro"] .grafico-container,
-:root[data-tema="escuro"] .grafico-barras {
+:root[data-tema="escuro"] .grafico-barras,
+:root[data-tema="escuro"] .lista-sugestoes-endereco {
   background: var(--branco);
+}
+
+:root[data-tema="escuro"] .lista-sugestoes-endereco .item-sugestao-endereco:hover {
+  background: var(--roxo-50);
 }
 
 :root[data-tema="escuro"] .container_end.em-analise { background: #241E2E; }
