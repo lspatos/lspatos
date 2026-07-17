@@ -26,6 +26,7 @@
     btn.id = "botaoTema";
     btn.type = "button";
     btn.setAttribute("aria-label", "Alternar modo escuro");
+    btn.setAttribute("data-novo", "modo-escuro");
     btn.textContent = document.documentElement.getAttribute("data-tema") === "escuro" ? "☀️" : "🌙";
 
     btn.addEventListener("click", () => {
