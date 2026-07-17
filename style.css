@@ -269,3 +269,110 @@ table.tabela-dados tr:hover td { background: var(--roxo-50); }
   .topo-app h1 { font-size: 16px; }
   .btn { font-size: 14px; padding: 11px 14px; }
 }
+
+/* =========================================================
+   Modo escuro
+   Ativado via atributo data-tema="escuro" na tag <html>
+   (controlado pelo theme.js). Reaproveita as mesmas variáveis
+   de cor usadas em todo o site, então a maior parte da tela já
+   se adapta sozinha; o resto (superfícies com #fff fixo) recebe
+   overrides pontuais abaixo.
+   ========================================================= */
+:root[data-tema="escuro"] {
+  --roxo-100: #34273F;
+  --roxo-50:  #241C33;
+  --tinta:    #EDE7F6;
+  --cinza-700:#C6BFD4;
+  --cinza-400:#948CA3;
+  --cinza-200:#392E48;
+  --papel:    #17131F;
+  --branco:   #241D30;
+  --sombra-card: 0 2px 14px rgba(0, 0, 0, 0.45);
+  --sombra-flutuante: 0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-tema="escuro"] .cartao,
+:root[data-tema="escuro"] .cartao-mapa,
+:root[data-tema="escuro"] .grupo-mapa,
+:root[data-tema="escuro"] table.tabela-dados,
+:root[data-tema="escuro"] #loginCard,
+:root[data-tema="escuro"] .cartao-alerta,
+:root[data-tema="escuro"] .container_end,
+:root[data-tema="escuro"] .modal-content,
+:root[data-tema="escuro"] .popover-alerta .conteudo,
+:root[data-tema="escuro"] .popover-mapa .conteudo-mapa,
+:root[data-tema="escuro"] .grafico-container,
+:root[data-tema="escuro"] .grafico-barras {
+  background: var(--branco);
+}
+
+:root[data-tema="escuro"] .container_end.em-analise { background: #241E2E; }
+
+:root[data-tema="escuro"] input[type="text"],
+:root[data-tema="escuro"] input[type="password"],
+:root[data-tema="escuro"] input[type="search"],
+:root[data-tema="escuro"] select,
+:root[data-tema="escuro"] textarea {
+  background: var(--branco);
+  color: var(--tinta);
+  border-color: var(--cinza-200);
+}
+
+:root[data-tema="escuro"] table.tabela-dados tr:hover td { background: var(--roxo-50); }
+:root[data-tema="escuro"] .btn-neutro { background: var(--branco); }
+
+/* Botão flutuante de alternância (criado pelo theme.js) */
+#botaoTema {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--roxo-600);
+  color: #fff;
+  font-size: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--sombra-flutuante);
+  cursor: pointer;
+  z-index: 900;
+  transition: transform .12s ease, filter .15s ease;
+}
+#botaoTema:hover { filter: brightness(1.08); }
+#botaoTema:active { transform: scale(0.92); }
+
+/* =========================================================
+   Acordeão de mapas (painel admin) — agrupa endereços por
+   território, com contagem e atalho de "adicionar aqui"
+   ========================================================= */
+.grupo-mapa {
+  background: #fff;
+  border-radius: var(--raio-md);
+  box-shadow: var(--sombra-card);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.grupo-mapa summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+.grupo-mapa summary::-webkit-details-marker { display: none; }
+.grupo-mapa summary::before {
+  content: "▸";
+  color: var(--cinza-400);
+  font-size: 12px;
+  transition: transform .15s ease;
+  flex: 0 0 auto;
+}
+.grupo-mapa[open] summary::before { transform: rotate(90deg); }
+.grupo-mapa .nome-grupo { flex: 1; font-size: 14.5px; font-weight: 600; color: var(--tinta); min-width: 0; }
+.grupo-mapa .contagem-grupo { font-size: 12.5px; color: var(--cinza-400); font-family: var(--fonte-dado); white-space: nowrap; }
+.grupo-mapa table.tabela-dados { box-shadow: none; border-radius: 0; }
+.grupo-mapa .btn-add-neste-mapa { flex: 0 0 auto; }
