@@ -1294,9 +1294,13 @@
       }
 
       lista.dataset.sugestoesJson = JSON.stringify(data.sugestoes);
-      lista.innerHTML = data.sugestoes.map((s, i) => `
-        <div class="item-sugestao-endereco" data-i="${i}">${escapeHTML(s.label)}</div>
-      `).join("");
+      lista.innerHTML = `
+        <div style="padding:8px 12px; font-size:11.5px; color:var(--cinza-400); border-bottom:1px solid var(--cinza-200);">
+          Selecione pra ajustar o pino no mapa - o texto do endereço não muda
+        </div>` +
+        data.sugestoes.map((s, i) => `
+          <div class="item-sugestao-endereco" data-i="${i}">${escapeHTML(s.label)}</div>
+        `).join("");
       lista.style.display = "block";
     } catch {
       lista.style.display = "none";
@@ -1311,9 +1315,12 @@
     const escolhida = sugestoes[Number(item.dataset.i)];
     if (!escolhida) return;
 
-    document.getElementById("endereco").value = escolhida.label;
+    // NÃO sobrescreve o texto que você digitou - o resultado da busca só
+    // costuma ter o nome da rua (sem o número da casa, que muitas vezes nem
+    // existe mapeado em Patos de Minas). O texto do endereço continua
+    // exatamente como você escreveu; só a coordenada do pino é ajustada.
     document.getElementById("statusLocalizacaoCadastro").textContent =
-      "Endereço escolhido da lista - coordenada já confirmada.";
+      `Pino ajustado com base em "${escolhida.label}" - arraste se precisar corrigir.`;
     mostrarPinCadastro(escolhida.lat, escolhida.lng);
     lista.style.display = "none";
     lista.innerHTML = "";
