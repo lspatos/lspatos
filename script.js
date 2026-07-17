@@ -254,6 +254,7 @@ async function gerarEnderecos(nomeMapa) {
     btnReportar.className = "btn-reportar";
     btnReportar.innerHTML = "⚠ Reportar";
     btnReportar.title = "Avisar mudança ou falecimento";
+    btnReportar.setAttribute("data-novo", "reportar-mudanca");
     btnReportar.addEventListener("click", () => abrirPopoverAlerta(nomeMapa, enderecoOriginal, motivosAnteriores));
 
     entradas.append(btnEncontrado, btnNaoEncontrado, btnMaps, btnReportar);
@@ -265,6 +266,11 @@ async function gerarEnderecos(nomeMapa) {
   });
 
   if (timestampCache) mostrarAvisoCacheOffline(timestampCache);
+
+  // Os botões "Reportar" acima acabaram de ser criados dinamicamente - reaplica
+  // os selos de "novo" pra eles também (a primeira passada do novidades.js
+  // rodou antes desses cards existirem).
+  if (window.aplicarSelosNovo) window.aplicarSelosNovo();
 }
 
 // ==========================
