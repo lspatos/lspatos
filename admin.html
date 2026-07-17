@@ -156,6 +156,11 @@
           <button id="limparBtn" class="btn btn-neutro">✖ Limpar</button>
         </div>
       </div>
+      <div style="margin-top:12px;">
+        <button type="button" id="localizarEnderecoBtn" class="btn btn-neutro" style="font-size:13px; padding:9px 12px; min-height:auto;">🔍 Localizar endereço no mapa</button>
+        <p id="statusLocalizacaoCadastro" style="font-size:12px; color:var(--cinza-400); margin-top:6px;"></p>
+        <div id="mapaCadastroContainer" style="height:220px; border-radius:var(--raio-md); overflow:hidden; margin-top:8px; display:none;"></div>
+      </div>
       <input type="hidden" id="id">
     </div>
 
@@ -381,6 +386,7 @@
 
   async function carregarSugestoes() {
     const container = document.getElementById("listaSugestoes");
+    coordenadasSugestoes = {};
     try {
       const res = await fetch(`${workerURL}?acao=read&aba=Sugestoes`, { headers: { "x-auth-token": token } });
       const dados = await res.json();
@@ -416,13 +422,79 @@
               <option value="">Escolha o mapa de destino…</option>
               ${opcoesMapas.map(m => `<option value="${escapeAttr(m)}">${escapeHTML(m)}</option>`).join("")}
             </select>
+            <button class="btn btn-neutro btn-localizar-sugestao" data-i="${i}" style="font-size:12.5px; padding:9px 10px; min-height:auto;">📍 Confirmar localização</button>
             <button class="btn btn-sucesso btn-aprovar-sugestao" data-i="${i}">✔ Aprovar</button>
             <button class="btn btn-perigo btn-rejeitar-sugestao" data-i="${i}">🗑 Rejeitar</button>
           </div>
+          <p class="status-localizacao-sugestao" data-i="${i}" style="font-size:12px; color:var(--cinza-400); margin-top:6px;"></p>
+          <div class="mapa-sugestao-container" data-i="${i}" style="height:200px; border-radius:var(--raio-md); overflow:hidden; margin-top:6px; display:none;"></div>
         </div>`).join("");
     } catch (err) {
       console.error(err);
       container.innerHTML = "<p class='sem-alertas'>❌ Erro ao carregar sugestões.</p>";
+    }
+  }
+
+  // === Mapa com pino pra confirmar a localização de uma sugestão antes de aprovar ===
+  let coordenadasSugestoes = {};
+  const leafletSugestoes = {};
+  const marcadoresSugestoes = {};
+
+  async function confirmarLocalizacaoSugestao(i) {
+    const s = sugestoesAtuais[i];
+    if (!s) return;
+
+    const status = document.querySelector(`.status-localizacao-sugestao[data-i="${i}"]`);
+    const btn = document.querySelector(`.btn-localizar-sugestao[data-i="${i}"]`);
+    btn.disabled = true;
+    status.textContent = "Localizando...";
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "geocodificar-preview", endereco: s.Endereco })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+
+      if (data.erro) {
+        status.textContent = "⚠ " + data.erro;
+        return;
+      }
+
+      coordenadasSugestoes[i] = { lat: data.lat, lng: data.lng };
+      const container = document.querySelector(`.mapa-sugestao-container[data-i="${i}"]`);
+      container.style.display = "block";
+
+      if (!leafletSugestoes[i]) {
+        const mapaLeaflet = L.map(container, { scrollWheelZoom: false }).setView([data.lat, data.lng], 16);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19
+        }).addTo(mapaLeaflet);
+
+        const marcador = L.marker([data.lat, data.lng], { draggable: true }).addTo(mapaLeaflet);
+        marcador.bindTooltip("Arraste pra corrigir, se necessário");
+        marcador.on("dragend", () => {
+          const pos = marcador.getLatLng();
+          coordenadasSugestoes[i] = { lat: pos.lat, lng: pos.lng };
+        });
+
+        leafletSugestoes[i] = mapaLeaflet;
+        marcadoresSugestoes[i] = marcador;
+        setTimeout(() => mapaLeaflet.invalidateSize(), 80);
+      } else {
+        leafletSugestoes[i].setView([data.lat, data.lng], 16);
+        marcadoresSugestoes[i].setLatLng([data.lat, data.lng]);
+        setTimeout(() => leafletSugestoes[i].invalidateSize(), 80);
+      }
+
+      status.textContent = "Pino colocado - arraste pra corrigir, se o local não estiver certo.";
+    } catch {
+      status.textContent = "Erro de conexão ao tentar localizar.";
+    } finally {
+      btn.disabled = false;
     }
   }
 
@@ -432,15 +504,21 @@
     const s = sugestoesAtuais[i];
     if (!s) return;
 
+    if (e.target.classList.contains("btn-localizar-sugestao")) {
+      confirmarLocalizacaoSugestao(i);
+      return;
+    }
+
     if (e.target.classList.contains("btn-aprovar-sugestao")) {
       const select = document.querySelector(`.select-mapa-sugestao[data-i="${i}"]`);
       const mapa = select ? select.value.trim() : "";
       if (!mapa) { alert("Escolha o mapa de destino antes de aprovar."); return; }
+      const coords = coordenadasSugestoes[i] || {};
       try {
         const res = await fetch(workerURL, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-auth-token": token },
-          body: JSON.stringify({ acao: "aprovar-sugestao", id: s.ID, mapa })
+          body: JSON.stringify({ acao: "aprovar-sugestao", id: s.ID, mapa, lat: coords.lat, lng: coords.lng })
         });
         const data = await res.json();
         if (data.erro && data.erro.includes("Sessão")) return logout();
@@ -1114,6 +1192,74 @@
 
   document.getElementById("buscaEndereco").addEventListener("input", renderizarGrupos);
 
+  // === Mapa com pino no cadastro/edição (confirmação visual da coordenada) ===
+  let coordenadasCadastro = { lat: null, lng: null };
+  let mapaCadastroLeaflet = null;
+  let marcadorCadastro = null;
+
+  function mostrarPinCadastro(lat, lng) {
+    coordenadasCadastro = { lat, lng };
+    const container = document.getElementById("mapaCadastroContainer");
+    container.style.display = "block";
+
+    if (!mapaCadastroLeaflet) {
+      mapaCadastroLeaflet = L.map(container, { scrollWheelZoom: false }).setView([lat, lng], 16);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19
+      }).addTo(mapaCadastroLeaflet);
+
+      marcadorCadastro = L.marker([lat, lng], { draggable: true }).addTo(mapaCadastroLeaflet);
+      marcadorCadastro.bindTooltip("Arraste pra corrigir, se necessário");
+      marcadorCadastro.on("dragend", () => {
+        const pos = marcadorCadastro.getLatLng();
+        coordenadasCadastro = { lat: pos.lat, lng: pos.lng };
+      });
+
+      setTimeout(() => mapaCadastroLeaflet.invalidateSize(), 80);
+    } else {
+      mapaCadastroLeaflet.setView([lat, lng], 16);
+      marcadorCadastro.setLatLng([lat, lng]);
+      setTimeout(() => mapaCadastroLeaflet.invalidateSize(), 80);
+    }
+  }
+
+  async function localizarEnderecoCadastro() {
+    const endereco = document.getElementById("endereco").value.trim();
+    if (!endereco) { alert("Digite o endereço antes de localizar."); return; }
+
+    const btn = document.getElementById("localizarEnderecoBtn");
+    const status = document.getElementById("statusLocalizacaoCadastro");
+    btn.disabled = true;
+    btn.textContent = "Localizando...";
+    status.textContent = "";
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "geocodificar-preview", endereco })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+
+      if (data.erro) {
+        status.textContent = "⚠ " + data.erro;
+        return;
+      }
+
+      mostrarPinCadastro(data.lat, data.lng);
+      status.textContent = "Pino colocado - arraste pra corrigir, se o local não estiver certo.";
+    } catch {
+      status.textContent = "Erro de conexão ao tentar localizar.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "🔍 Localizar endereço no mapa";
+    }
+  }
+
+  document.getElementById("localizarEnderecoBtn").addEventListener("click", localizarEnderecoCadastro);
+
   async function salvar() {
     const mapa = document.getElementById("mapa").value.trim();
     const endereco = document.getElementById("endereco").value.trim();
@@ -1144,7 +1290,10 @@
           "Content-Type": "application/json",
           "x-auth-token": token
         },
-        body: JSON.stringify({ acao: id ? "update" : "add", mapa, endereco, restricao, id })
+        body: JSON.stringify({
+          acao: id ? "update" : "add", mapa, endereco, restricao, id,
+          lat: coordenadasCadastro.lat, lng: coordenadasCadastro.lng
+        })
       });
       const data = await res.json();
       if (data.erro && data.erro.includes("Sessão")) return logout();
@@ -1184,6 +1333,14 @@
     document.getElementById("endereco").value = item.Endereco || "";
     document.getElementById("restricao").value = item.Restricao || "";
     document.getElementById("mapa").scrollIntoView({ behavior: "smooth", block: "center" });
+
+    document.getElementById("statusLocalizacaoCadastro").textContent = "";
+    if (item.Lat && item.Lng) {
+      mostrarPinCadastro(Number(item.Lat), Number(item.Lng));
+    } else {
+      coordenadasCadastro = { lat: null, lng: null };
+      document.getElementById("mapaCadastroContainer").style.display = "none";
+    }
   }
 
   function limpar() {
@@ -1191,6 +1348,9 @@
     document.getElementById("mapa").value = "";
     document.getElementById("endereco").value = "";
     document.getElementById("restricao").value = "";
+    coordenadasCadastro = { lat: null, lng: null };
+    document.getElementById("statusLocalizacaoCadastro").textContent = "";
+    document.getElementById("mapaCadastroContainer").style.display = "none";
   }
 
   document.getElementById("salvarBtn").onclick = salvar;
