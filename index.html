@@ -11,6 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>LS Mapas — Patos de Minas</title>
   <link rel="stylesheet" href="style.css">
+  <script src="theme.js"></script>
   <style>
     .hero {
       position: relative;
@@ -118,7 +119,32 @@
     }
 
     .acesso-admin {
-      display: flex; justify-content: center; margin: 34px 0 40px;
+      display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 34px 0 40px;
+    }
+
+    /* Popover de "reportar endereço novo" (mesmo padrão visual usado em
+       mapa.html para o alerta de mudança/falecimento) */
+    .popover-alerta {
+      position: fixed; inset: 0;
+      background: rgba(33,27,43,.5);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 998;
+    }
+    .popover-alerta .conteudo {
+      background: #fff; width: 100%; max-width: 420px;
+      border-radius: 18px 18px 0 0; padding: 22px 20px 26px;
+    }
+    .popover-alerta h3 { font-size: 16px; margin-bottom: 4px; }
+    .popover-alerta p { font-size: 13px; color: var(--cinza-700); margin-bottom: 16px; }
+    .popover-alerta input { margin-bottom: 12px; }
+    .popover-alerta button.cancelar {
+      display: block; width: 100%; text-align: center;
+      background: none; border: none; color: var(--cinza-400);
+      padding: 10px; margin-top: 8px; font-size: 14px; cursor: pointer;
+    }
+    @media (min-width: 480px) {
+      .popover-alerta { align-items: center; }
+      .popover-alerta .conteudo { border-radius: var(--raio-lg); }
     }
   </style>
 </head>
@@ -156,6 +182,9 @@
     </div>
 
     <div class="acesso-admin">
+      <button class="btn btn-secundario" id="btnReportarNovo">
+        📍 Reportar endereço novo
+      </button>
       <button class="btn btn-secundario" onclick="window.location.href='admin.html'">
         🔐 Acessar administração
       </button>
@@ -194,6 +223,56 @@
     }
 
     carregarMapas();
+
+    // ==========================
+    // REPORTAR ENDEREÇO NOVO
+    // O publicador só informa o endereço e o próprio nome - quem decide em
+    // qual mapa ele entra é o administrador, no painel (fica pendente até lá).
+    // ==========================
+    function abrirPopoverSugestao() {
+      const overlay = document.createElement("div");
+      overlay.className = "popover-alerta";
+      overlay.innerHTML = `
+        <div class="conteudo">
+          <h3>📍 Reportar endereço novo</h3>
+          <p>Encontrou um endereço que ainda não está em nenhum mapa? Avise aqui — o administrador vai conferir e adicionar ao mapa certo.</p>
+          <input type="text" id="enderecoSugestao" placeholder="Endereço completo (rua, número, bairro)">
+          <input type="text" id="nomeSugestao" placeholder="Seu nome">
+          <button class="btn btn-primario btn-bloco" id="enviarSugestaoBtn">Enviar</button>
+          <button class="cancelar" type="button">Cancelar</button>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      overlay.querySelector(".cancelar").addEventListener("click", () => overlay.remove());
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+      overlay.querySelector("#enviarSugestaoBtn").addEventListener("click", async () => {
+        const endereco = overlay.querySelector("#enderecoSugestao").value.trim();
+        const nome = overlay.querySelector("#nomeSugestao").value.trim();
+        if (!endereco || !nome) {
+          alert("Preencha o endereço e seu nome antes de enviar.");
+          return;
+        }
+        const btn = overlay.querySelector("#enviarSugestaoBtn");
+        btn.disabled = true;
+        btn.textContent = "Enviando...";
+        try {
+          await fetch(workerURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ acao: "sugerir-endereco", endereco, responsavel: nome })
+          });
+          overlay.remove();
+          alert("Endereço enviado! O administrador vai conferir e adicionar ao mapa certo.");
+        } catch {
+          alert("Sem conexão agora. Tente novamente daqui a pouco.");
+          btn.disabled = false;
+          btn.textContent = "Enviar";
+        }
+      });
+    }
+
+    document.getElementById("btnReportarNovo").addEventListener("click", abrirPopoverSugestao);
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
