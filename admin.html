@@ -172,6 +172,13 @@
     <div id="listaAlertas" style="margin-bottom:10px;"></div>
 
     <div class="secao-titulo-tabela">
+      <h2>🧩 Agrupamento automático</h2>
+    </div>
+    <div style="margin-bottom:20px;">
+      <button class="btn btn-secundario" id="btnAbrirAgrupamento">Abrir ferramenta de agrupamento</button>
+    </div>
+
+    <div class="secao-titulo-tabela">
       <h2>Territórios cadastrados</h2>
       <span id="contagemRegistros" style="font-size:13px; color:var(--cinza-400); font-family:var(--fonte-dado);"></span>
     </div>
@@ -935,6 +942,174 @@
     // tinha as dimensões finais no momento da criação (comum dentro de
     // popovers) - corrige logo depois do popover terminar de renderizar.
     setTimeout(() => mapaLeaflet.invalidateSize(), 80);
+  }
+
+  // === Agrupamento automático de endereços em mapas ===
+  document.getElementById("btnAbrirAgrupamento").addEventListener("click", abrirFerramentaAgrupamento);
+
+  function abrirFerramentaAgrupamento() {
+    const nomesMapas = [...new Set(registrosAtuais.map(r => (r.Mapa || "").trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+
+    const checkboxesMapas = nomesMapas.map(m => `
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:400; margin-bottom:4px;">
+        <input type="checkbox" class="check-mapa-agrupamento" value="${escapeAttr(m)}" style="width:auto;">
+        ${escapeHTML(m)}
+      </label>`).join("");
+
+    const overlay = document.createElement("div");
+    overlay.className = "popover-alerta";
+    overlay.innerHTML = `
+      <div class="conteudo" style="max-width:620px;">
+        <h3>🧩 Agrupamento automático</h3>
+        <p>Junta endereços novos, sugestões pendentes e/ou endereços de mapas já existentes em grupos próximos entre si, com um tamanho-alvo de endereços (endereços com restrição entram no grupo, mas não somam nessa contagem).</p>
+
+        <label for="alvoTamanhoAgrupamento">Endereços por mapa (sem contar restrição)</label>
+        <input type="number" id="alvoTamanhoAgrupamento" value="5" min="1" style="max-width:120px;">
+
+        <label for="enderecosColadosAgrupamento" style="margin-top:12px;">Colar endereços novos (um por linha - use "|" pra marcar restrição, ex: Rua X, 123 | IR ANCIÃO)</label>
+        <textarea id="enderecosColadosAgrupamento" rows="4" style="width:100%; font-family:inherit; font-size:14px; padding:10px 12px; border:1.5px solid var(--cinza-200); border-radius:var(--raio-sm); margin-bottom:12px;"></textarea>
+
+        <label style="display:flex; align-items:center; gap:6px; margin-bottom:14px;">
+          <input type="checkbox" id="incluirSugestoesAgrupamento" style="width:auto;">
+          Incluir sugestões de endereço pendentes (${sugestoesAtuais.length})
+        </label>
+
+        ${nomesMapas.length ? `
+        <label style="margin-bottom:6px;">Incluir endereços de mapas já existentes (rebalanceia esses mapas)</label>
+        <div style="max-height:140px; overflow-y:auto; border:1.5px solid var(--cinza-200); border-radius:var(--raio-sm); padding:10px 12px; margin-bottom:14px;">
+          ${checkboxesMapas}
+        </div>` : ""}
+
+        <label for="origemAgrupamento">Endereço de partida (pra otimizar a ordem dentro de cada grupo)</label>
+        <input type="text" id="origemAgrupamento" value="${escapeAttr(ENDERECO_SALAO)}">
+
+        <button class="btn btn-primario btn-bloco" id="calcularAgrupamentoBtn">Calcular agrupamento</button>
+        <div id="resultadoAgrupamento"></div>
+        <button class="cancelar" type="button">Fechar</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector(".cancelar").addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+
+    overlay.querySelector("#calcularAgrupamentoBtn").addEventListener("click", async () => {
+      const alvoTamanho = parseInt(overlay.querySelector("#alvoTamanhoAgrupamento").value, 10);
+      const enderecosColados = overlay.querySelector("#enderecosColadosAgrupamento").value;
+      const incluirSugestoes = overlay.querySelector("#incluirSugestoesAgrupamento").checked;
+      const origemRota = overlay.querySelector("#origemAgrupamento").value.trim();
+      const mapasSelecionados = [...overlay.querySelectorAll(".check-mapa-agrupamento:checked")].map(el => el.value);
+
+      if (!alvoTamanho || alvoTamanho < 1) { alert("Informe quantos endereços por mapa."); return; }
+
+      const btn = overlay.querySelector("#calcularAgrupamentoBtn");
+      const resultado = overlay.querySelector("#resultadoAgrupamento");
+      btn.disabled = true;
+      btn.textContent = "Calculando...";
+      resultado.innerHTML = "";
+
+      try {
+        const res = await fetch(workerURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-auth-token": token },
+          body: JSON.stringify({
+            acao: "calcular-agrupamento",
+            alvoTamanho, enderecosColados, incluirSugestoes, mapasSelecionados, origemRota
+          })
+        });
+        const data = await res.json();
+        if (data.erro && data.erro.includes("Sessão")) return logout();
+
+        if (data.erro) {
+          resultado.innerHTML = `<p style="color:var(--vermelho); font-size:13.5px; margin-top:14px;">${escapeHTML(data.erro)}</p>`;
+          return;
+        }
+
+        const avisos = [];
+        if (data.metodoMatriz && data.metodoMatriz !== "openrouteservice") {
+          avisos.push(`⚠ Agrupamento calculado com distância aproximada (${escapeHTML(data.metodoMatriz)}), não a distância real das ruas.`);
+        }
+        if ((data.semCoordenadas || []).length) {
+          avisos.push(`ℹ ${data.semCoordenadas.length} endereço(s) não localizado(s) e ficaram de fora: ${data.semCoordenadas.map(escapeHTML).join(", ")}`);
+        }
+
+        const gruposHTML = data.grupos.map((grupo, gi) => {
+          const listaEnderecos = grupo.membros.map((m, i) => `${i + 1}. ${escapeHTML(m.endereco || "")}${m.restricao ? " ⚠️" : ""}`).join("<br>");
+          const contando = grupo.membros.filter(m => !m.restricao).length;
+          const comRestricao = grupo.membros.length - contando;
+          return `
+            <div class="cartao-alerta" style="margin-bottom:10px;">
+              <div class="topo-alerta">
+                <div>
+                  <h4>${escapeHTML(grupo.label)}</h4>
+                  <span class="tag-mapa">${contando} endereço(s)${comRestricao ? ` + ${comRestricao} com restrição` : ""} · rota: ${escapeHTML(grupo.metodoRota)}</span>
+                </div>
+              </div>
+              <div style="font-size:12.5px; line-height:1.6; margin:8px 0;">${listaEnderecos}</div>
+              <button class="btn btn-neutro btn-ver-mapa-grupo" data-grupo="${gi}" style="font-size:12.5px; padding:7px 10px; min-height:auto;">🗺️ Ver no mapa</button>
+              <div class="mapa-grupo-container" data-grupo="${gi}" style="height:220px; border-radius:var(--raio-md); overflow:hidden; margin-top:10px; display:none;"></div>
+            </div>`;
+        }).join("");
+
+        resultado.innerHTML = `
+          ${avisos.map(a => `<p style="font-size:12px; color:var(--ambar); margin:10px 0;">${a}</p>`).join("")}
+          <p style="font-size:13px; color:var(--cinza-700); margin:14px 0 8px;"><strong>${data.grupos.length} mapa(s) serão criados:</strong></p>
+          ${gruposHTML}
+          <button class="btn btn-sucesso btn-bloco" id="aplicarAgrupamentoBtn" style="margin-top:6px;">✔ Aplicar este agrupamento</button>`;
+
+        resultado.querySelectorAll(".btn-ver-mapa-grupo").forEach(btnMapa => {
+          btnMapa.addEventListener("click", () => {
+            const gi = Number(btnMapa.dataset.grupo);
+            const container = resultado.querySelector(`.mapa-grupo-container[data-grupo="${gi}"]`);
+            const jaAberto = container.style.display !== "none";
+            container.style.display = jaAberto ? "none" : "block";
+            btnMapa.textContent = jaAberto ? "🗺️ Ver no mapa" : "🗺️ Esconder mapa";
+            if (!jaAberto) {
+              const grupo = data.grupos[gi];
+              desenharMapaRota(container, grupo.membros, grupo.geometria, data.origemRota);
+            }
+          });
+        });
+
+        resultado.querySelector("#aplicarAgrupamentoBtn").addEventListener("click", async () => {
+          const btnAplicar = resultado.querySelector("#aplicarAgrupamentoBtn");
+          if (!confirm(`Confirma aplicar? Isso vai criar/mover endereços em ${data.grupos.length} mapa(s).`)) return;
+          btnAplicar.disabled = true;
+          btnAplicar.textContent = "Aplicando...";
+          try {
+            const resAplicar = await fetch(workerURL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "x-auth-token": token },
+              body: JSON.stringify({
+                acao: "aplicar-agrupamento",
+                grupos: data.grupos,
+                sugestoesConsumidas: data.sugestoesConsumidas
+              })
+            });
+            const dataAplicar = await resAplicar.json();
+            if (dataAplicar.erro && dataAplicar.erro.includes("Sessão")) return logout();
+            if (dataAplicar.erro) {
+              alert(dataAplicar.erro);
+              btnAplicar.disabled = false;
+              btnAplicar.textContent = "✔ Aplicar este agrupamento";
+              return;
+            }
+            overlay.remove();
+            await carregarMapas();
+            await carregarSugestoes();
+          } catch {
+            alert("Erro ao aplicar o agrupamento. Tente novamente.");
+            btnAplicar.disabled = false;
+            btnAplicar.textContent = "✔ Aplicar este agrupamento";
+          }
+        });
+      } catch {
+        resultado.innerHTML = `<p style="color:var(--vermelho); font-size:13.5px; margin-top:14px;">Erro de conexão. Tente novamente.</p>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Calcular agrupamento";
+      }
+    });
   }
 
   document.getElementById("buscaEndereco").addEventListener("input", renderizarGrupos);
