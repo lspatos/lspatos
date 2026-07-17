@@ -309,11 +309,15 @@ async function gerar() {
           const d = grupo[i];
           const inicio = d ? formatarData(d.inicioObj) : "";
           const fim = d ? formatarData(d.fimObj) : "";
-          celulasNome += `<td class="datas nome" colspan="2">${d ? d.nome : ""}</td>`;
-          celulasDatas += `<td class="datas">${inicio}</td><td class="datas">${fim}</td>`;
+          // Célula HTML totalmente vazia (sem nem um espaço) colapsa mais do
+          // que uma com texto - por isso usa &nbsp; como "conteúdo mínimo"
+          // quando não há designação, garantindo a mesma altura de linha das
+          // células preenchidas.
+          celulasNome += `<td class="datas nome" colspan="2">${d ? d.nome : "&nbsp;"}</td>`;
+          celulasDatas += `<td class="datas">${inicio || "&nbsp;"}</td><td class="datas">${fim || "&nbsp;"}</td>`;
         }
         const rotuloTerr = gi === 0 ? mapa : `${mapa} (cont.)`;
-        const ultimaCel = gi === 0 ? ultimaConcluida : "";
+        const ultimaCel = gi === 0 ? (ultimaConcluida || "&nbsp;") : "&nbsp;";
         linhasHTML.push(`
           <tr>
             <td class="terr" rowspan="2">${rotuloTerr}</td>
