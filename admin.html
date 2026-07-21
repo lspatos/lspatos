@@ -149,16 +149,40 @@
       <button class="btn btn-neutro" onclick="logout()">🚪 Sair</button>
     </div>
 
-    <div class="cartao form-cartao" id="painelDirigentes">
-      <h3>👤 Dirigentes com acesso ao painel</h3>
+    <div class="cartao form-cartao" id="painelServos">
+      <h3>🔑 Servos de mapas (acesso ao painel administrativo)</h3>
+      <p style="font-size:13.5px; color:var(--cinza-400); margin-bottom:12px;">
+        Quem cuida dos territórios: adiciona, edita e remove mapas e endereços por aqui.
+        Isso é diferente da lista de "Dirigentes" (mais abaixo), que só serve pra escolher
+        quem designou a visita, sem precisar de login.
+      </p>
       <div class="grade-form">
         <div class="campo">
-          <label for="novoDirigenteUsuario">Usuário</label>
-          <input type="text" id="novoDirigenteUsuario" placeholder="Ex: joao">
+          <label for="novoServoUsuario">Usuário</label>
+          <input type="text" id="novoServoUsuario" placeholder="Ex: joao">
         </div>
         <div class="campo">
-          <label for="novoDirigenteSenha">Senha inicial</label>
-          <input type="password" id="novoDirigenteSenha" placeholder="Mínimo 6 caracteres">
+          <label for="novoServoSenha">Senha inicial</label>
+          <input type="password" id="novoServoSenha" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-botoes">
+          <button id="adicionarServoBtn" class="btn btn-primario">➕ Adicionar servo de mapas</button>
+        </div>
+      </div>
+      <div id="listaServos" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="cartao form-cartao" id="painelDirigentes">
+      <h3>👤 Dirigentes</h3>
+      <p style="font-size:13.5px; color:var(--cinza-400); margin-bottom:12px;">
+        Nomes disponíveis no seletor "Quem é o dirigente hoje?" do site público, na hora de
+        registrar uma visita. Qualquer varão qualificado pode entrar nessa lista - não precisa
+        de login nem senha.
+      </p>
+      <div class="grade-form">
+        <div class="campo" style="grid-column: span 2;">
+          <label for="novoDirigenteNome">Nome</label>
+          <input type="text" id="novoDirigenteNome" placeholder="Ex: João Silva">
         </div>
         <div class="form-botoes">
           <button id="adicionarDirigenteBtn" class="btn btn-primario">➕ Adicionar dirigente</button>
@@ -678,7 +702,8 @@
     const usuarioAtual = sessionStorage.getItem("usuarioAdmin");
     document.getElementById("usuarioLogado").textContent = usuarioAtual ? `— ${usuarioAtual}` : "";
     carregarMapas().then(() => Promise.all([carregarAlertas(), carregarSugestoes()]));
-    carregarDirigentes();
+    carregarServos();
+    carregarDirigentesLista();
   }
 
   function logout() {
@@ -688,11 +713,11 @@
     location.reload();
   }
 
-  // === Dirigentes com acesso ao painel (adicionar/remover) ===
-  async function carregarDirigentes() {
-    const container = document.getElementById("listaDirigentes");
+  // === Servos de mapas (login/senha - acesso ao painel administrativo) ===
+  async function carregarServos() {
+    const container = document.getElementById("listaServos");
     try {
-      const res = await fetch(`${workerURL}?acao=listar-dirigentes`, { headers: { "x-auth-token": token } });
+      const res = await fetch(`${workerURL}?acao=listar-servos`, { headers: { "x-auth-token": token } });
       const data = await res.json();
       if (data.erro && data.erro.includes("Sessão")) return logout();
       if (data.erro) {
@@ -701,27 +726,27 @@
       }
 
       const usuarioAtual = sessionStorage.getItem("usuarioAdmin") || "";
-      const dirigentes = (data.dirigentes || []).slice().sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const servos = (data.servos || []).slice().sort((a, b) => a.localeCompare(b, "pt-BR"));
 
-      if (!dirigentes.length) {
-        container.innerHTML = "<p class='sem-alertas'>Nenhum dirigente cadastrado.</p>";
+      if (!servos.length) {
+        container.innerHTML = "<p class='sem-alertas'>Nenhum servo de mapas cadastrado.</p>";
         return;
       }
 
-      container.innerHTML = dirigentes.map(nome => `
+      container.innerHTML = servos.map(nome => `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 4px; border-bottom:1px solid var(--cinza-200); font-size:14px;">
           <span>${escapeHTML(nome)}${nome === usuarioAtual ? " <span style='color:var(--cinza-400); font-size:12px;'>(você)</span>" : ""}</span>
-          <button class="btn btn-perigo btn-icone" title="Remover acesso" onclick="removerDirigente('${escapeAttr(nome)}')" ${dirigentes.length <= 1 ? "disabled" : ""}>🗑</button>
+          <button class="btn btn-perigo btn-icone" title="Remover acesso" onclick="removerServo('${escapeAttr(nome)}')" ${servos.length <= 1 ? "disabled" : ""}>🗑</button>
         </div>
       `).join("");
     } catch {
-      container.innerHTML = "<p class='sem-alertas'>Erro ao carregar dirigentes.</p>";
+      container.innerHTML = "<p class='sem-alertas'>Erro ao carregar servos de mapas.</p>";
     }
   }
 
-  async function adicionarDirigente() {
-    const usuario = document.getElementById("novoDirigenteUsuario").value.trim();
-    const senha = document.getElementById("novoDirigenteSenha").value;
+  async function adicionarServo() {
+    const usuario = document.getElementById("novoServoUsuario").value.trim();
+    const senha = document.getElementById("novoServoSenha").value;
 
     if (!usuario || !senha) return alert("Preencha usuário e senha.");
     if (senha.length < 6) return alert("Use uma senha com pelo menos 6 caracteres.");
@@ -730,22 +755,22 @@
       const res = await fetch(workerURL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-auth-token": token },
-        body: JSON.stringify({ acao: "adicionar-dirigente", usuario, senha })
+        body: JSON.stringify({ acao: "adicionar-servo", usuario, senha })
       });
       const data = await res.json();
       if (data.erro && data.erro.includes("Sessão")) return logout();
       if (data.erro) return alert(data.erro);
 
-      document.getElementById("novoDirigenteUsuario").value = "";
-      document.getElementById("novoDirigenteSenha").value = "";
-      alert(`Dirigente "${usuario}" adicionado.`);
-      carregarDirigentes();
+      document.getElementById("novoServoUsuario").value = "";
+      document.getElementById("novoServoSenha").value = "";
+      alert(`Servo de mapas "${usuario}" adicionado.`);
+      carregarServos();
     } catch {
-      alert("Erro ao adicionar dirigente.");
+      alert("Erro ao adicionar servo de mapas.");
     }
   }
 
-  async function removerDirigente(usuario) {
+  async function removerServo(usuario) {
     const usuarioAtual = sessionStorage.getItem("usuarioAdmin") || "";
     const mensagem = usuario === usuarioAtual
       ? "Você está removendo o SEU PRÓPRIO acesso. Isso vai te desconectar agora. Confirma?"
@@ -756,20 +781,101 @@
       const res = await fetch(workerURL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-auth-token": token },
-        body: JSON.stringify({ acao: "remover-dirigente", usuario })
+        body: JSON.stringify({ acao: "remover-servo", usuario })
       });
       const data = await res.json();
       if (data.erro && data.erro.includes("Sessão")) return logout();
       if (data.erro) return alert(data.erro);
 
       if (usuario === usuarioAtual) return logout();
-      carregarDirigentes();
+      carregarServos();
+    } catch {
+      alert("Erro ao remover servo de mapas.");
+    }
+  }
+
+  document.getElementById("adicionarServoBtn").onclick = adicionarServo;
+
+  // === Dirigentes (lista de nomes pro seletor "Quem é o dirigente hoje?") ===
+  // Sem login/senha - é só um nome. A leitura (GET read&aba=Dirigentes) é
+  // pública (o site do publicador usa sem token); adicionar/remover exige
+  // login de Servo de mapas, por isso manda o token aqui mesmo assim.
+  let dirigentesAtuais = [];
+
+  async function carregarDirigentesLista() {
+    const container = document.getElementById("listaDirigentes");
+    try {
+      const res = await fetch(`${workerURL}?acao=read&aba=Dirigentes`, { headers: { "x-auth-token": token } });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      if (data.erro) {
+        container.innerHTML = `<p class="sem-alertas">${escapeHTML(data.erro)}</p>`;
+        return;
+      }
+
+      dirigentesAtuais = (data.registros || []).slice().sort((a, b) =>
+        String(a.Nome || "").localeCompare(String(b.Nome || ""), "pt-BR")
+      );
+
+      if (!dirigentesAtuais.length) {
+        container.innerHTML = "<p class='sem-alertas'>Nenhum dirigente cadastrado.</p>";
+        return;
+      }
+
+      container.innerHTML = dirigentesAtuais.map(d => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 4px; border-bottom:1px solid var(--cinza-200); font-size:14px;">
+          <span>${escapeHTML(d.Nome)}</span>
+          <button class="btn btn-perigo btn-icone" title="Remover" onclick="removerDirigenteLista('${escapeAttr(d.ID)}')">🗑</button>
+        </div>
+      `).join("");
+    } catch {
+      container.innerHTML = "<p class='sem-alertas'>Erro ao carregar dirigentes.</p>";
+    }
+  }
+
+  async function adicionarDirigenteLista() {
+    const nome = document.getElementById("novoDirigenteNome").value.trim();
+    if (!nome) return alert("Digite o nome do dirigente.");
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "adicionar-dirigente", nome })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      if (data.erro) return alert(data.erro);
+
+      document.getElementById("novoDirigenteNome").value = "";
+      carregarDirigentesLista();
+    } catch {
+      alert("Erro ao adicionar dirigente.");
+    }
+  }
+
+  async function removerDirigenteLista(id) {
+    const item = dirigentesAtuais.find(d => String(d.ID) === String(id));
+    const nome = item ? item.Nome : "";
+    if (!confirm(`Remover "${nome}" da lista de dirigentes?`)) return;
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "remover-dirigente", id })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      if (data.erro) return alert(data.erro);
+
+      carregarDirigentesLista();
     } catch {
       alert("Erro ao remover dirigente.");
     }
   }
 
-  document.getElementById("adicionarDirigenteBtn").onclick = adicionarDirigente;
+  document.getElementById("adicionarDirigenteBtn").onclick = adicionarDirigenteLista;
 
   // === CRUD Mapas ===
   async function carregarMapas() {
