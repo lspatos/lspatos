@@ -530,12 +530,57 @@ function showToast(msg) {
 }
 
 // ==========================
+// LISTA DE DIRIGENTES (carregada da planilha, com fallback em cache)
+// A lista de opções que já vem fixa no HTML (mapa.html) serve de fallback
+// imediato - aparece na hora, sem esperar rede. Assim que a busca na
+// planilha responde, as opções são substituídas pela lista atual (o que o
+// Servo de mapas cadastrou/removeu no painel), preservando a seleção atual
+// se o nome ainda existir na lista nova.
+// ==========================
+const CHAVE_CACHE_DIRIGENTES = "cacheDirigentesLS";
+
+function preencherOpcoesDirigentes(select, nomes) {
+  if (!select || !nomes || !nomes.length) return;
+  const valorAtual = select.value;
+  const nomesOrdenados = nomes.slice().sort((a, b) => a.localeCompare(b, "pt-BR"));
+  select.innerHTML = `<option value="">Selecione o dirigente</option>` +
+    nomesOrdenados.map(n => `<option value="${n.replace(/"/g, "&quot;")}">${n}</option>`).join("");
+  if (valorAtual && nomesOrdenados.includes(valorAtual)) select.value = valorAtual;
+}
+
+async function carregarDirigentesRemotos(select) {
+  try {
+    const res = await fetch(`${proxyURL}?acao=read&aba=Dirigentes`);
+    const dados = await res.json();
+    if (dados.erro || !dados.registros) return; // mantém o que já está na tela (cache ou HTML padrão)
+
+    const nomes = dados.registros.map(r => (r.Nome || "").trim()).filter(Boolean);
+    if (!nomes.length) return;
+
+    preencherOpcoesDirigentes(select, nomes);
+    localStorage.setItem(CHAVE_CACHE_DIRIGENTES, JSON.stringify(nomes));
+  } catch (e) {
+    console.warn("Não foi possível atualizar a lista de dirigentes agora - mantendo a última lista conhecida:", e);
+  }
+}
+
+// ==========================
 // MODAL DE IDENTIFICAÇÃO (expira a cada 4h)
 // ==========================
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("identificacaoModal");
   const btnConfirmar = document.getElementById("confirmarResponsavel");
   const select = document.getElementById("responsavelSelect");
+
+  if (select) {
+    // Mostra rápido a última lista conhecida (cache local), se houver,
+    // enquanto busca a versão mais atual da planilha em segundo plano.
+    try {
+      const cache = JSON.parse(localStorage.getItem(CHAVE_CACHE_DIRIGENTES) || "null");
+      if (cache && cache.length) preencherOpcoesDirigentes(select, cache);
+    } catch (e) { /* cache corrompido ou indisponível - ignora, usa o HTML padrão */ }
+    carregarDirigentesRemotos(select);
+  }
 
   const agora = Date.now();
   const ultimaHora = parseInt(localStorage.getItem("responsavelHora") || "0");
