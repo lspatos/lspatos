@@ -149,6 +149,24 @@
       <button class="btn btn-neutro" onclick="logout()">🚪 Sair</button>
     </div>
 
+    <div class="cartao form-cartao" id="painelDirigentes">
+      <h3>👤 Dirigentes com acesso ao painel</h3>
+      <div class="grade-form">
+        <div class="campo">
+          <label for="novoDirigenteUsuario">Usuário</label>
+          <input type="text" id="novoDirigenteUsuario" placeholder="Ex: joao">
+        </div>
+        <div class="campo">
+          <label for="novoDirigenteSenha">Senha inicial</label>
+          <input type="password" id="novoDirigenteSenha" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-botoes">
+          <button id="adicionarDirigenteBtn" class="btn btn-primario">➕ Adicionar dirigente</button>
+        </div>
+      </div>
+      <div id="listaDirigentes" style="margin-top:14px;"></div>
+    </div>
+
     <div class="cartao form-cartao">
       <h3>📦 Encerrar ciclo de visita (superintendente)</h3>
       <p style="font-size:13.5px; color:var(--cinza-400); margin-bottom:12px;">
@@ -167,8 +185,37 @@
           <input type="text" id="mapa" list="listaMapasExistentes" placeholder="Ex: Mapa 01">
           <datalist id="listaMapasExistentes"></datalist>
         </div>
-        <div class="campo" style="grid-column: span 2; position:relative;">
-          <label for="endereco">Endereço completo</label>
+        <div class="campo">
+          <label for="cepEndereco">CEP</label>
+          <input type="text" id="cepEndereco" placeholder="00000-000" inputmode="numeric" maxlength="9">
+        </div>
+        <div class="campo">
+          <label for="numeroEndereco">Número</label>
+          <input type="text" id="numeroEndereco" placeholder="Ex: 123">
+        </div>
+        <div class="campo">
+          <label for="complementoEndereco">Complemento (opcional)</label>
+          <input type="text" id="complementoEndereco" placeholder="Ex: Casa dos fundos">
+        </div>
+        <div class="campo" style="grid-column: span 2;">
+          <label for="logradouroEndereco">Logradouro</label>
+          <input type="text" id="logradouroEndereco" placeholder="Preenchido pelo CEP - pode editar">
+        </div>
+        <div class="campo">
+          <label for="bairroEndereco">Bairro</label>
+          <input type="text" id="bairroEndereco" placeholder="Preenchido pelo CEP">
+        </div>
+        <div class="campo">
+          <label for="cidadeEndereco">Cidade</label>
+          <input type="text" id="cidadeEndereco" placeholder="Preenchido pelo CEP">
+        </div>
+        <div class="campo">
+          <label for="ufEndereco">UF</label>
+          <input type="text" id="ufEndereco" maxlength="2" placeholder="MG">
+        </div>
+        <p id="statusCep" style="grid-column: 1 / -1; font-size:12px; color:var(--cinza-400); margin:0 0 4px;"></p>
+        <div class="campo" style="grid-column: 1 / -1; position:relative;">
+          <label for="endereco">Endereço completo (montado automaticamente pelo CEP - pode ajustar)</label>
           <input type="text" id="endereco" placeholder="Rua, número, bairro" autocomplete="off">
           <div id="sugestoesEndereco" class="lista-sugestoes-endereco"></div>
         </div>
@@ -631,6 +678,7 @@
     const usuarioAtual = sessionStorage.getItem("usuarioAdmin");
     document.getElementById("usuarioLogado").textContent = usuarioAtual ? `— ${usuarioAtual}` : "";
     carregarMapas().then(() => Promise.all([carregarAlertas(), carregarSugestoes()]));
+    carregarDirigentes();
   }
 
   function logout() {
@@ -639,6 +687,89 @@
     token = null;
     location.reload();
   }
+
+  // === Dirigentes com acesso ao painel (adicionar/remover) ===
+  async function carregarDirigentes() {
+    const container = document.getElementById("listaDirigentes");
+    try {
+      const res = await fetch(`${workerURL}?acao=listar-dirigentes`, { headers: { "x-auth-token": token } });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      if (data.erro) {
+        container.innerHTML = `<p class="sem-alertas">${escapeHTML(data.erro)}</p>`;
+        return;
+      }
+
+      const usuarioAtual = sessionStorage.getItem("usuarioAdmin") || "";
+      const dirigentes = (data.dirigentes || []).slice().sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+      if (!dirigentes.length) {
+        container.innerHTML = "<p class='sem-alertas'>Nenhum dirigente cadastrado.</p>";
+        return;
+      }
+
+      container.innerHTML = dirigentes.map(nome => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 4px; border-bottom:1px solid var(--cinza-200); font-size:14px;">
+          <span>${escapeHTML(nome)}${nome === usuarioAtual ? " <span style='color:var(--cinza-400); font-size:12px;'>(você)</span>" : ""}</span>
+          <button class="btn btn-perigo btn-icone" title="Remover acesso" onclick="removerDirigente('${escapeAttr(nome)}')" ${dirigentes.length <= 1 ? "disabled" : ""}>🗑</button>
+        </div>
+      `).join("");
+    } catch {
+      container.innerHTML = "<p class='sem-alertas'>Erro ao carregar dirigentes.</p>";
+    }
+  }
+
+  async function adicionarDirigente() {
+    const usuario = document.getElementById("novoDirigenteUsuario").value.trim();
+    const senha = document.getElementById("novoDirigenteSenha").value;
+
+    if (!usuario || !senha) return alert("Preencha usuário e senha.");
+    if (senha.length < 6) return alert("Use uma senha com pelo menos 6 caracteres.");
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "adicionar-dirigente", usuario, senha })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      if (data.erro) return alert(data.erro);
+
+      document.getElementById("novoDirigenteUsuario").value = "";
+      document.getElementById("novoDirigenteSenha").value = "";
+      alert(`Dirigente "${usuario}" adicionado.`);
+      carregarDirigentes();
+    } catch {
+      alert("Erro ao adicionar dirigente.");
+    }
+  }
+
+  async function removerDirigente(usuario) {
+    const usuarioAtual = sessionStorage.getItem("usuarioAdmin") || "";
+    const mensagem = usuario === usuarioAtual
+      ? "Você está removendo o SEU PRÓPRIO acesso. Isso vai te desconectar agora. Confirma?"
+      : `Remover o acesso de "${usuario}"?`;
+    if (!confirm(mensagem)) return;
+
+    try {
+      const res = await fetch(workerURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-auth-token": token },
+        body: JSON.stringify({ acao: "remover-dirigente", usuario })
+      });
+      const data = await res.json();
+      if (data.erro && data.erro.includes("Sessão")) return logout();
+      if (data.erro) return alert(data.erro);
+
+      if (usuario === usuarioAtual) return logout();
+      carregarDirigentes();
+    } catch {
+      alert("Erro ao remover dirigente.");
+    }
+  }
+
+  document.getElementById("adicionarDirigenteBtn").onclick = adicionarDirigente;
 
   // === CRUD Mapas ===
   async function carregarMapas() {
@@ -1370,6 +1501,104 @@
 
   document.getElementById("localizarEnderecoBtn").addEventListener("click", localizarEnderecoCadastro);
 
+  // === Busca de CEP (preenche logradouro/bairro/cidade/UF automaticamente) ===
+  // Usa o ViaCEP (viacep.com.br) - serviço gratuito, sem chave, mantido pela
+  // comunidade e amplamente usado no mercado brasileiro pra esse tipo de
+  // preenchimento automático. O admin ainda digita número e complemento na
+  // mão (isso o CEP não sabe) e pode corrigir qualquer campo preenchido, se
+  // o logradouro/bairro vier errado ou incompleto.
+  function formatarCep(valor) {
+    const digitos = valor.replace(/\D/g, "").slice(0, 8);
+    return digitos.length > 5 ? digitos.slice(0, 5) + "-" + digitos.slice(5) : digitos;
+  }
+
+  // Abrevia o tipo de logradouro pro padrão comum em endereços impressos
+  // (Rua -> R., Avenida -> Av., etc.) - só cosmético, o campo continua editável.
+  function abreviarLogradouro(nome) {
+    if (!nome) return nome;
+    const regras = [
+      [/^Rua\s/i, "R. "],
+      [/^Avenida\s/i, "Av. "],
+      [/^Travessa\s/i, "Tv. "],
+      [/^Alameda\s/i, "Al. "],
+      [/^Rodovia\s/i, "Rod. "],
+      [/^Praça\s/i, "Pça. "]
+    ];
+    for (const [regex, abrev] of regras) {
+      if (regex.test(nome)) return nome.replace(regex, abrev);
+    }
+    return nome;
+  }
+
+  document.getElementById("cepEndereco").addEventListener("input", (e) => {
+    e.target.value = formatarCep(e.target.value);
+    const digitos = e.target.value.replace(/\D/g, "");
+    if (digitos.length === 8) buscarCep(digitos);
+  });
+
+  async function buscarCep(cep) {
+    const status = document.getElementById("statusCep");
+    status.textContent = "Buscando CEP...";
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        status.textContent = "⚠ CEP não encontrado - preencha logradouro, bairro, cidade e UF manualmente.";
+        return;
+      }
+      document.getElementById("logradouroEndereco").value = abreviarLogradouro(data.logradouro || "");
+      document.getElementById("bairroEndereco").value = data.bairro || "";
+      document.getElementById("cidadeEndereco").value = data.localidade || "";
+      document.getElementById("ufEndereco").value = data.uf || "";
+      status.textContent = "✔ Endereço encontrado - confira e preencha o número.";
+      montarEnderecoCompleto();
+      document.getElementById("numeroEndereco").focus();
+    } catch {
+      status.textContent = "Erro de conexão ao buscar o CEP.";
+    }
+  }
+
+  // Monta o texto final do endereço (o mesmo campo "endereco" que sempre
+  // existiu e é o que de fato vai salvo na planilha) a partir dos campos
+  // estruturados, no formato: "Logradouro, Número (Complemento) - Bairro -
+  // Cidade - UF, CEP". Continua 100% editável depois de montado.
+  function montarEnderecoCompleto() {
+    const logradouro = document.getElementById("logradouroEndereco").value.trim();
+    const numero = document.getElementById("numeroEndereco").value.trim();
+    const complemento = document.getElementById("complementoEndereco").value.trim();
+    const bairro = document.getElementById("bairroEndereco").value.trim();
+    const cidade = document.getElementById("cidadeEndereco").value.trim();
+    const uf = document.getElementById("ufEndereco").value.trim().toUpperCase();
+    const cep = document.getElementById("cepEndereco").value.trim();
+
+    if (!logradouro || !numero) return;
+
+    let linha = `${logradouro}, ${numero}`;
+    if (complemento) linha += ` (${complemento})`;
+    const partes = [linha];
+    if (bairro) partes.push(bairro);
+    if (cidade) partes.push(cidade);
+    let enderecoFinal = partes.join(" - ");
+    if (uf) enderecoFinal += ` - ${uf}`;
+    if (cep) enderecoFinal += `, ${cep}`;
+
+    document.getElementById("endereco").value = enderecoFinal;
+  }
+
+  ["numeroEndereco", "complementoEndereco", "logradouroEndereco", "bairroEndereco", "cidadeEndereco", "ufEndereco"]
+    .forEach(id => document.getElementById(id).addEventListener("input", montarEnderecoCompleto));
+
+  function limparCamposCep() {
+    document.getElementById("cepEndereco").value = "";
+    document.getElementById("numeroEndereco").value = "";
+    document.getElementById("complementoEndereco").value = "";
+    document.getElementById("logradouroEndereco").value = "";
+    document.getElementById("bairroEndereco").value = "";
+    document.getElementById("cidadeEndereco").value = "";
+    document.getElementById("ufEndereco").value = "";
+    document.getElementById("statusCep").textContent = "";
+  }
+
   async function salvar() {
     const mapa = document.getElementById("mapa").value.trim();
     const endereco = document.getElementById("endereco").value.trim();
@@ -1444,6 +1673,12 @@
     document.getElementById("restricao").value = item.Restricao || "";
     document.getElementById("mapa").scrollIntoView({ behavior: "smooth", block: "center" });
 
+    // Endereços já cadastrados foram salvos como texto livre - não dá pra
+    // "desmontar" de volta em CEP/número/complemento com segurança. Os campos
+    // estruturados ficam em branco; o texto do endereço continua editável
+    // direto, ou dá pra usar o CEP de novo pra remontar do zero.
+    limparCamposCep();
+
     document.getElementById("statusLocalizacaoCadastro").textContent = "";
     if (item.Lat && item.Lng) {
       mostrarPinCadastro(Number(item.Lat), Number(item.Lng));
@@ -1458,6 +1693,7 @@
     document.getElementById("mapa").value = "";
     document.getElementById("endereco").value = "";
     document.getElementById("restricao").value = "";
+    limparCamposCep();
     coordenadasCadastro = { lat: null, lng: null };
     document.getElementById("statusLocalizacaoCadastro").textContent = "";
     document.getElementById("mapaCadastroContainer").style.display = "none";
